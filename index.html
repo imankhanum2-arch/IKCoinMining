@@ -47,6 +47,9 @@
     margin: 0 auto 16px;
     box-shadow: 0 0 30px rgba(252,74,26,0.5);
   }
+  .logo-circle.bouncing {
+    animation: monoBounce 0.9s infinite ease-in-out;
+  }
   h1 { font-size: 22px; margin-bottom: 4px; }
   .subtitle { color: #bbb; font-size: 13px; margin-bottom: 24px; }
   input, select {
@@ -374,6 +377,26 @@
   .logout-menu-item:hover {
     background: rgba(255,107,107,0.08);
   }
+
+  /* ===== AUTH LOADING ===== */
+  .auth-loading-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px 0 34px;
+  }
+  @keyframes monoBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+  .time-error-text {
+    color: #ff6b6b;
+    font-size: 13.5px;
+    line-height: 1.5;
+    max-width: 260px;
+  }
 </style>
 </head>
 <body>
@@ -419,13 +442,15 @@
     </a>
   </div>
 
-  <div class="logo-circle" id="logoCircle">IK</div>
+  <div class="logo-circle bouncing" id="logoCircle">IK</div>
   <h1>IK Coin Mining</h1>
   <p class="subtitle"></p>
 
-  <!-- Shown briefly while Firebase restores the session, so the login
-       form never flashes for an already-logged-in user -->
-  <div id="authLoading" style="padding: 4px 0 30px; color:#999; font-size:16px;">Checking session...</div>
+  <!-- Shown briefly while (1) device date/time is verified against the
+       server and (2) Firebase restores the session, so neither the login
+       form nor the dashboard ever flashes incorrectly. The bounce animation
+       now runs on the logo-circle above instead of a separate duplicate logo. -->
+  <div id="authLoading" class="auth-loading-wrap"></div>
 
   <!-- ENTRY -->
   <div id="entryStep" class="hidden">
@@ -603,6 +628,89 @@ function goDashboard() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ===== DEVICE DATE/TIME TAMPER GUARD =====
+// A user can set their phone's clock backward to make a still-active mining
+// cooldown appear expired, unlocking the Mine button early. We never trust
+// the device clock alone: on load we fetch our own server's response `Date`
+// header (same-origin, so no CORS issues on ikcoin.online) and compare it
+// against Date.now(). If they differ by more than a small tolerance, the
+// app refuses to open until the device time is corrected.
+const TIME_TOLERANCE_MS = 3 * 60 * 1000; // 3 minutes
+
+async function getServerTime() {
+  const res = await fetch(window.location.origin + '/?_ts=' + Date.now(), {
+    method: 'HEAD',
+    cache: 'no-store'
+  });
+  const dateHeader = res.headers.get('Date');
+  if (!dateHeader) throw new Error('No Date header from server');
+  return new Date(dateHeader).getTime();
+}
+
+async function verifyDeviceTime() {
+  try {
+    const serverTime = await getServerTime();
+    const deviceTime = Date.now();
+    return Math.abs(serverTime - deviceTime) <= TIME_TOLERANCE_MS;
+  } catch (e) {
+    // If the check itself fails (offline, server hiccup), don't lock genuine
+    // users out — fail open, since the cooldown is still enforced server-side.
+    console.error('Time verification failed:', e);
+    return true;
+  }
+}
+
+function showTimeError() {
+  // Stop the logo bounce and show an error state on the logo itself.
+  const logo = document.getElementById('logoCircle');
+  logo.classList.remove('bouncing');
+  logo.style.background = 'linear-gradient(135deg,#ff6b6b,#c0392b)';
+  logo.style.boxShadow = '0 0 12px rgba(255,107,107,0.4)';
+  logo.textContent = '!';
+
+  const el = document.getElementById('authLoading');
+  el.innerHTML =
+    '<div class="time-error-text">Aapke device ka date &amp; time ghalat set hai.<br>Please sahi kar ke app dobara open karein.</div>';
+}
+
+let timeVerified = false;
+let authStatePending = false;
+let pendingUser; // holds the user object once onAuthStateChanged fires, until time is verified
+
+async function processAuthState(user) {
+  if (user) {
+    currentUid = user.uid;
+    const snap = await getDoc(userDocRef(user.uid));
+    if (snap.exists()) {
+      currentUsername = snap.data().username;
+      showDashboard();
+      refreshStatus();
+    } else {
+      // Auth session exists but no profile doc — treat as logged out
+      document.getElementById('entryStep').classList.remove('hidden');
+      document.getElementById('apkDownloadBtn').classList.remove('hidden');
+    }
+  } else {
+    currentUid = '';
+    currentUsername = '';
+    document.getElementById('entryStep').classList.remove('hidden');
+    document.getElementById('apkDownloadBtn').classList.remove('hidden');
+  }
+  document.getElementById('authLoading').classList.add('hidden');
+  document.getElementById('logoCircle').classList.remove('bouncing');
+}
+
+verifyDeviceTime().then((ok) => {
+  timeVerified = ok;
+  if (!ok) {
+    showTimeError();
+    return;
+  }
+  if (authStatePending) {
+    processAuthState(pendingUser);
+  }
+});
+
 // ===== MINING COOLDOWN GUARD =====
 // The server (LastMineTime in the sheet) is always the source of truth, so the
 // cooldown works correctly across devices/logins. This local cache only prevents
@@ -641,26 +749,15 @@ window.onload = function() {
 
 // Firebase keeps the session alive across reloads on its own — this fires
 // automatically once on load, and again whenever login/logout happens.
+// We hold the result back until the device time check has passed, so the
+// login/dashboard screen never opens on a tampered clock.
 onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    currentUid = user.uid;
-    const snap = await getDoc(userDocRef(user.uid));
-    if (snap.exists()) {
-      currentUsername = snap.data().username;
-      showDashboard();
-      refreshStatus();
-    } else {
-      // Auth session exists but no profile doc — treat as logged out
-      document.getElementById('entryStep').classList.remove('hidden');
-      document.getElementById('apkDownloadBtn').classList.remove('hidden');
-    }
-  } else {
-    currentUid = '';
-    currentUsername = '';
-    document.getElementById('entryStep').classList.remove('hidden');
-    document.getElementById('apkDownloadBtn').classList.remove('hidden');
+  if (!timeVerified) {
+    authStatePending = true;
+    pendingUser = user;
+    return;
   }
-  document.getElementById('authLoading').classList.add('hidden');
+  await processAuthState(user);
 });
 
 // ===== BUTTON LOADING STATE HELPERS =====
