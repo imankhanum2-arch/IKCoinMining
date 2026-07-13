@@ -595,11 +595,6 @@ async function setCredentials(btn) {
   setBtnLoading(btn, 'Creating account...');
   const usernameLower = username.toLowerCase();
 
-  // Declared here (not inside try) so the catch block below can check
-  // whether an Auth account was already created and roll it back if a
-  // later step failed.
-  let cred = null;
-
   try {
     // Run the 3 independent lookups together instead of one-by-one — each
     // network round trip was adding to the wait before account creation.
@@ -629,29 +624,20 @@ async function setCredentials(btn) {
     let referrerUid = '';
     if (refUnameSnap && refUnameSnap.exists()) referrerUid = refUnameSnap.data().uid;
 
-    // 4) Create the Auth account first, and WAIT for it to finish before
-    // touching Firestore. The stats counter transaction below requires an
-    // authenticated request (per security rules) — running it in parallel
-    // with account creation was a race condition: if the Auth token hadn't
-    // finished propagating yet when the transaction hit Firestore, it was
-    // rejected with permission-denied, which failed the whole account
-    // creation AFTER the Auth user already existed (orphaned account).
-    // Sequential here is required for correctness, not just a nice-to-have.
-    cred = await createUserWithEmailAndPassword(auth, pendingEmail, password);
-    const uid = cred.user.uid;
-
-    // From here on, the Auth account exists. ANY failure below must roll it
-    // back (delete the Auth user) — otherwise the email is stuck as "in use"
-    // with no profile data, and the user is left silently signed-in as a
-    // profile-less account (which also makes referral links bounce them to
-    // the login screen instead of showing signup).
+    // 4) Create the Auth account AND bump the global user counter at the
+    // same time — they don't depend on each other's result, so running them
+    // sequentially was just adding an extra network round trip for nothing.
     let blueTick = false;
-    await runTransaction(db, async (tx) => {
-      const statsSnap = await tx.get(statsDocRef());
-      const totalUsers = statsSnap.exists() ? (statsSnap.data().totalUsers || 0) : 0;
-      blueTick = totalUsers < BLUE_TICK_LIMIT;
-      tx.set(statsDocRef(), { totalUsers: totalUsers + 1 }, { merge: true });
-    });
+    const [cred] = await Promise.all([
+      createUserWithEmailAndPassword(auth, pendingEmail, password),
+      runTransaction(db, async (tx) => {
+        const statsSnap = await tx.get(statsDocRef());
+        const totalUsers = statsSnap.exists() ? (statsSnap.data().totalUsers || 0) : 0;
+        blueTick = totalUsers < BLUE_TICK_LIMIT;
+        tx.set(statsDocRef(), { totalUsers: totalUsers + 1 }, { merge: true });
+      })
+    ]);
+    const uid = cred.user.uid;
     const walletAddress = generateWalletAddress();
 
     // 6) User profile + username index + referrer credit + OTP cleanup —
@@ -693,7 +679,6 @@ async function setCredentials(btn) {
         timestamp: serverTimestamp()
       }));
     }
-
     await Promise.all(writes);
 
     msgEl.textContent = 'Account created! Redirecting...';
@@ -701,28 +686,9 @@ async function setCredentials(btn) {
     setTimeout(() => { window.location.href = 'index.html'; }, 800);
   } catch (e) {
     console.error(e);
-
-    // If an Auth account was created (cred is set) but we ended up here,
-    // something after account creation failed — the stats transaction or
-    // one of the profile writes. That leaves an orphaned Auth account: no
-    // profile data, but the email is now "in use", so every retry would
-    // fail with auth/email-already-in-use, and the browser is left silently
-    // signed-in as a profile-less user (which also makes referral links
-    // bounce to the login screen instead of showing signup). Roll it back
-    // so the user gets a clean retry.
-    if (cred && cred.user) {
-      try {
-        await cred.user.delete();
-        console.error('Rolled back orphaned Auth account after failure:', e);
-      } catch (rollbackErr) {
-        console.error('Rollback delete failed:', rollbackErr);
-      }
-    }
-
     let friendly = 'Something went wrong, please try again';
     if (e.code === 'auth/email-already-in-use') friendly = 'Email already registered please click on login';
     if (e.code === 'auth/weak-password') friendly = 'Password must be at least 6 characters';
-    if (e.code === 'permission-denied') friendly = 'Could not save your details, please try again';
     msgEl.textContent = friendly;
     msgEl.className = 'msg error';
   } finally {
