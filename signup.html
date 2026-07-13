@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Create Account</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .logo-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #bbb; font-size: 13px; margin-bottom: 24px; }
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  select option { background: #24243e; color: #fff; }
+  input::placeholder { color: #999; }
+
+  /* OTP field: big, centered, letter-spaced digits */
+  #otpInput {
+    text-align: center;
+    letter-spacing: 10px;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .phone-row { display: flex; gap: 8px; position: relative; }
+  .phone-row input { flex: 1; margin-bottom: 0; }
+
+  .country-dropdown { position: relative; flex: 0 0 78px; }
+  .country-btn {
+    width: 100%;
+    padding: 14px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .country-panel {
+    position: absolute;
+    top: 54px;
+    left: 0;
+    width: 260px;
+    max-height: 280px;
+    background: #24243e;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 50;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .country-panel.hidden { display: none; }
+  .country-search {
+    margin: 8px;
+    width: calc(100% - 16px);
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .country-list {
+    overflow-y: auto;
+    max-height: 220px;
+    padding-bottom: 6px;
+  }
+  .country-item {
+    padding: 10px 14px;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  .country-item:hover { background: rgba(255,255,255,0.08); }
+  .country-item .code { color: #f7b733; font-weight: 600; }
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #a98a54, #a8543a);
+  }
+  .link-btn {
+    background: none;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px;
+    margin-top: 4px;
+  }
+  .msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .msg.error { color: #ff6b6b; }
+  .msg.success { color: #6bff9e; }
+  .hidden { display: none; }
+  .field-hint { font-size: 11px; color: #888; margin: -8px 0 12px; text-align: left; }
+  .otp-counter { font-size: 12px; color: #888; margin: -8px 0 14px; text-align: right; }
+  .back-link { display: block; margin-top: 16px; font-size: 13px; color: #bbb; cursor: pointer; }
+  .back-link:hover { color: #f7b733; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="logo-circle">IK</div>
+  <h1>Create New Account</h1>
+  <p class="subtitle">Join IK Coin Mining</p>
+
+  <!-- STEP A - Email OTP -->
+  <div id="emailStep">
+    <input type="email" id="emailInput" placeholder="Email address">
+    <button id="sendOtpBtn" onclick="requestOtp(this)">Send OTP</button>
+    <div id="emailMsg" class="msg"></div>
+    <div class="back-link" onclick="window.location.href='index.html'">Already have an account? Login</div>
+  </div>
+
+  <!-- STEP B - Verify OTP -->
+  <div id="otpStep" class="hidden">
+    <input
+      type="text"
+      id="otpInput"
+      placeholder="000000"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      maxlength="6"
+      autocomplete="one-time-code"
+      oninput="onOtpInput()">
+    <div class="otp-counter" id="otpCounter">0 / 6 digits</div>
+    <button id="verifyOtpBtn" onclick="verifyOtp(this)" disabled>Verify now</button>
+    <div id="otpMsg" class="msg"></div>
+    <div class="back-link" onclick="goBackToEmailStep()">← Change email</div>
+    <div class="back-link" onclick="window.location.href='index.html'">Already have an account? Login</div>
+  </div>
+
+  <!-- STEP C - Referral code (optional) -->
+  <div id="referralStep" class="hidden">
+    <input type="text" id="referralCodeInput" placeholder="Referral code (optional)" oninput="this.value = this.value.toLowerCase(); onReferralInput()">
+    <div id="referralMsg" class="msg"></div>
+    <button onclick="continueFromReferral()">Continue</button>
+    <button class="link-btn" onclick="skipReferral()">Skip</button>
+  </div>
+
+  <!-- STEP D - Final details, phone optional -->
+  <div id="credentialsStep" class="hidden">
+    <input type="text" id="newFullName" placeholder="Full Name">
+
+    <div class="phone-row">
+      <div class="country-dropdown" id="countryDropdown">
+        <button type="button" class="country-btn" id="countryBtn" onclick="toggleCountryList()">+1</button>
+        <div class="country-panel hidden" id="countryPanel">
+          <input type="text" class="country-search" id="countrySearch" placeholder="Search..." oninput="renderCountryList(this.value)">
+          <div class="country-list" id="countryList"></div>
+        </div>
+      </div>
+      <input type="tel" id="phoneInput" placeholder="Phone number (optional)" oninput="onPhoneInput()">
+    </div>
+    <div class="field-hint" id="phoneHint">Phone number is optional, email is already verified.</div>
+
+    <input type="text" id="newUsername" placeholder="Username" oninput="this.value = this.value.toLowerCase()">
+    <input type="password" id="newPassword" placeholder="Password (Minimum 6 characters)">
+    <button onclick="setCredentials(this)">Create Account</button>
+    <div id="credMsg" class="msg"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import {
+  db, auth, doc, getDoc, setDoc, deleteDoc, collection, addDoc, runTransaction, serverTimestamp, increment,
+  createUserWithEmailAndPassword, onAuthStateChanged,
+  sendOtpEmail, generateOtp, generateWalletAddress,
+  usernameDocRef, userDocRef, statsDocRef, BLUE_TICK_LIMIT, REFERRAL_BONUS, generateTID
+} from './firebase-shared.js';
+
+// Only bounce back to the dashboard if this looks like someone who
+// clicked a referral link while already logged in (they don't need to
+// sign up again). If they navigated here normally (e.g. tapped "Create
+// New Account"), let them proceed — creating a new account will simply
+// switch their session to the new user, which is expected behavior.
+onAuthStateChanged(auth, (user) => {
+  const hasRefParam = new URLSearchParams(window.location.search).has('ref');
+  if (user && hasRefParam) {
+    window.location.replace('index.html');
+  }
+});
+
+// ===== COUNTRY LIST =====
+// 4th value = standard number of digits to enter after the country code
+// (i.e. the local number WITHOUT a leading 0 or the dial code itself).
+const COUNTRIES = [
+["Afghanistan","AF","+93",9],["Albania","AL","+355",9],["Algeria","DZ","+213",9],["Andorra","AD","+376",6],
+["Angola","AO","+244",9],["Argentina","AR","+54",10],["Armenia","AM","+374",8],["Australia","AU","+61",9],
+["Austria","AT","+43",10],["Azerbaijan","AZ","+994",9],["Bahamas","BS","+1",10],["Bahrain","BH","+973",8],
+["Bangladesh","BD","+880",10],["Barbados","BB","+1",10],["Belarus","BY","+375",9],["Belgium","BE","+32",9],
+["Belize","BZ","+501",7],["Benin","BJ","+229",8],["Bhutan","BT","+975",8],["Bolivia","BO","+591",8],
+["Bosnia and Herzegovina","BA","+387",8],["Botswana","BW","+267",8],["Brazil","BR","+55",11],
+["Brunei","BN","+673",7],["Bulgaria","BG","+359",9],["Burkina Faso","BF","+226",8],["Burundi","BI","+257",8],
+["Cambodia","KH","+855",9],["Cameroon","CM","+237",9],["Canada","CA","+1",10],["Cape Verde","CV","+238",7],
+["Central African Republic","CF","+236",8],["Chad","TD","+235",8],["Chile","CL","+56",9],["China","CN","+86",11],
+["Colombia","CO","+57",10],["Comoros","KM","+269",7],["Congo","CG","+242",9],["Costa Rica","CR","+506",8],
+["Croatia","HR","+385",9],["Cuba","CU","+53",8],["Cyprus","CY","+357",8],["Czech Republic","CZ","+420",9],
+["Denmark","DK","+45",8],["Djibouti","DJ","+253",8],["Dominican Republic","DO","+1",10],["Ecuador","EC","+593",9],
+["Egypt","EG","+20",10],["El Salvador","SV","+503",8],["Estonia","EE","+372",8],["Eswatini","SZ","+268",8],
+["Ethiopia","ET","+251",9],["Fiji","FJ","+679",7],["Finland","FI","+358",9],["France","FR","+33",9],
+["Gabon","GA","+241",8],["Gambia","GM","+220",7],["Georgia","GE","+995",9],["Germany","DE","+49",11],
+["Ghana","GH","+233",9],["Greece","GR","+30",10],["Guatemala","GT","+502",8],["Guinea","GN","+224",9],
+["Guyana","GY","+592",7],["Haiti","HT","+509",8],["Honduras","HN","+504",8],["Hong Kong","HK","+852",8],
+["Hungary","HU","+36",9],["Iceland","IS","+354",7],["India","IN","+91",10],["Indonesia","ID","+62",11],
+["Iran","IR","+98",10],["Iraq","IQ","+964",10],["Ireland","IE","+353",9],["Israel","IL","+972",9],
+["Italy","IT","+39",10],["Ivory Coast","CI","+225",10],["Jamaica","JM","+1",10],["Japan","JP","+81",10],
+["Jordan","JO","+962",9],["Kazakhstan","KZ","+7",10],["Kenya","KE","+254",9],["Kuwait","KW","+965",8],
+["Kyrgyzstan","KG","+996",9],["Laos","LA","+856",9],["Latvia","LV","+371",8],["Lebanon","LB","+961",8],
+["Lesotho","LS","+266",8],["Liberia","LR","+231",8],["Libya","LY","+218",9],["Liechtenstein","LI","+423",7],
+["Lithuania","LT","+370",8],["Luxembourg","LU","+352",9],["Madagascar","MG","+261",9],["Malawi","MW","+265",9],
+["Malaysia","MY","+60",9],["Maldives","MV","+960",7],["Mali","ML","+223",8],["Malta","MT","+356",8],
+["Mauritania","MR","+222",8],["Mauritius","MU","+230",8],["Mexico","MX","+52",10],["Moldova","MD","+373",8],
+["Monaco","MC","+377",8],["Mongolia","MN","+976",8],["Montenegro","ME","+382",8],["Morocco","MA","+212",9],
+["Mozambique","MZ","+258",9],["Myanmar","MM","+95",9],["Namibia","NA","+264",9],["Nepal","NP","+977",10],
+["Netherlands","NL","+31",9],["New Zealand","NZ","+64",9],["Nicaragua","NI","+505",8],["Niger","NE","+227",8],
+["Nigeria","NG","+234",10],["North Korea","KP","+850",10],["North Macedonia","MK","+389",8],["Norway","NO","+47",8],
+["Oman","OM","+968",8],["Pakistan","PK","+92",10],["Palestine","PS","+970",9],["Panama","PA","+507",8],
+["Papua New Guinea","PG","+675",8],["Paraguay","PY","+595",9],["Peru","PE","+51",9],["Philippines","PH","+63",10],
+["Poland","PL","+48",9],["Portugal","PT","+351",9],["Qatar","QA","+974",8],["Romania","RO","+40",9],
+["Russia","RU","+7",10],["Rwanda","RW","+250",9],["Saudi Arabia","SA","+966",9],["Senegal","SN","+221",9],
+["Serbia","RS","+381",9],["Seychelles","SC","+248",7],["Sierra Leone","SL","+232",8],["Singapore","SG","+65",8],
+["Slovakia","SK","+421",9],["Slovenia","SI","+386",8],["Somalia","SO","+252",8],["South Africa","ZA","+27",9],
+["South Korea","KR","+82",10],["South Sudan","SS","+211",9],["Spain","ES","+34",9],["Sri Lanka","LK","+94",9],
+["Sudan","SD","+249",9],["Suriname","SR","+597",7],["Sweden","SE","+46",9],["Switzerland","CH","+41",9],
+["Syria","SY","+963",9],["Taiwan","TW","+886",9],["Tajikistan","TJ","+992",9],["Tanzania","TZ","+255",9],
+["Thailand","TH","+66",9],["Togo","TG","+228",8],["Trinidad and Tobago","TT","+1",10],["Tunisia","TN","+216",8],
+["Turkey","TR","+90",10],["Turkmenistan","TM","+993",8],["Uganda","UG","+256",9],["Ukraine","UA","+380",9],
+["United Arab Emirates","AE","+971",9],["United Kingdom","GB","+44",10],["United States","US","+1",10],
+["Uruguay","UY","+598",8],["Uzbekistan","UZ","+998",9],["Vanuatu","VU","+678",7],["Venezuela","VE","+58",10],
+["Vietnam","VN","+84",9],["Yemen","YE","+967",9],["Zambia","ZM","+260",9],["Zimbabwe","ZW","+263",9]
+];
+
+let selectedDialCode = '+1'; // default US
+let selectedMaxDigits = 10;  // default US
+
+function renderCountryList(filter) {
+  const listEl = document.getElementById('countryList');
+  listEl.innerHTML = '';
+  const f = (filter || '').toLowerCase();
+  COUNTRIES
+    .filter(c => c[0].toLowerCase().includes(f) || c[2].includes(f))
+    .forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'country-item';
+      item.innerHTML = '<span>' + c[0] + '</span><span class="code">' + c[2] + '</span>';
+      item.onclick = () => selectCountry(c[2], c[3]);
+      listEl.appendChild(item);
+    });
+}
+
+function selectCountry(dialCode, maxDigits) {
+  selectedDialCode = dialCode;
+  selectedMaxDigits = maxDigits || 12;
+  document.getElementById('countryBtn').textContent = dialCode;
+  document.getElementById('countryPanel').classList.add('hidden');
+  document.getElementById('countrySearch').value = '';
+  renderCountryList('');
+  // Re-apply the new country's digit limit to whatever's already typed
+  onPhoneInput();
+}
+
+// Digits only, no leading 0 (not needed once the country code is already
+// prefixed), capped at the selected country's standard number length.
+function onPhoneInput() {
+  const phoneEl = document.getElementById('phoneInput');
+  const hintEl = document.getElementById('phoneHint');
+  if (!phoneEl) return;
+
+  let digits = phoneEl.value.replace(/\D/g, '');
+  digits = digits.replace(/^0+/, '');
+  digits = digits.slice(0, selectedMaxDigits);
+  if (phoneEl.value !== digits) {
+    phoneEl.value = digits;
+  }
+
+  if (hintEl) {
+    hintEl.textContent = digits.length
+      ? digits.length + ' / ' + selectedMaxDigits + ' digits (no leading 0 needed after ' + selectedDialCode + ')'
+      : 'Optional — ' + selectedMaxDigits + ' digits after ' + selectedDialCode + ', no leading 0';
+  }
+}
+
+function toggleCountryList() {
+  const panel = document.getElementById('countryPanel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    document.getElementById('countrySearch').focus();
+  }
+}
+
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('countryDropdown');
+  if (dropdown && !dropdown.contains(e.target)) {
+    document.getElementById('countryPanel').classList.add('hidden');
+  }
+});
+
+let pendingEmail = '';
+let referredByCode = '';
+
+window.onload = function() {
+  renderCountryList('');
+
+  // If arrived via a referral link (?ref=USERNAME), capture it
+  const urlParams = new URLSearchParams(window.location.search);
+  const ref = urlParams.get('ref');
+  if (ref) {
+    referredByCode = ref.toLowerCase();
+  }
+};
+
+// ===== BUTTON LOADING STATE HELPERS =====
+function setBtnLoading(btn, loadingText) {
+  if (!btn) return;
+  if (btn.dataset.originalText === undefined) {
+    btn.dataset.originalText = btn.textContent;
+  }
+  btn.textContent = loadingText || 'Please wait...';
+  btn.disabled = true;
+}
+
+function resetBtn(btn) {
+  if (!btn) return;
+  if (btn.dataset.originalText !== undefined) {
+    btn.textContent = btn.dataset.originalText;
+  }
+  btn.disabled = false;
+}
+
+async function requestOtp(btn) {
+  const email = document.getElementById('emailInput').value.trim().toLowerCase();
+  const msgEl = document.getElementById('emailMsg');
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    msgEl.textContent = 'Please enter correct email';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  msgEl.textContent = 'Sending OTP...';
+  msgEl.className = 'msg';
+  setBtnLoading(btn, 'Sending...');
+
+  try {
+    // Email already fully registered? block re-signup.
+    const existing = await getDoc(doc(db, 'signupOtps', email));
+    if (existing.exists() && existing.data().registered) {
+      msgEl.textContent = 'Email already registered, please login';
+      msgEl.className = 'msg error';
+      resetBtn(btn);
+      return;
+    }
+
+    const otp = generateOtp();
+    await setDoc(doc(db, 'signupOtps', email), {
+      otp, verified: false, registered: false, createdAt: serverTimestamp()
+    });
+
+    pendingEmail = email;
+    document.getElementById('emailStep').classList.add('hidden');
+    document.getElementById('otpStep').classList.remove('hidden');
+    document.getElementById('otpInput').value = '';
+    onOtpInput();
+    document.getElementById('otpInput').focus();
+    resetBtn(btn);
+
+    const otpMsg = document.getElementById('otpMsg');
+    otpMsg.textContent = 'Sending email...';
+    otpMsg.className = 'msg';
+
+    // Don't make the user wait on Apps Script (it's slow, 3-6s) before they
+    // can even see the OTP screen — send it in the background instead.
+    sendOtpEmail(email, otp).then((relayResult) => {
+      if (relayResult.success) {
+        otpMsg.textContent = 'OTP sent to ' + email;
+        otpMsg.className = 'msg success';
+      } else {
+        otpMsg.textContent = 'Could not send email, tap Resend to try again';
+        otpMsg.className = 'msg error';
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'Connection error, please try again';
+    msgEl.className = 'msg error';
+    resetBtn(btn);
+  }
+}
+
+// ===== OTP FIELD: digits only, exactly 6 digits required to enable the button =====
+function onOtpInput() {
+  const otpEl = document.getElementById('otpInput');
+  const counterEl = document.getElementById('otpCounter');
+  const verifyBtn = document.getElementById('verifyOtpBtn');
+
+  // Strip anything that isn't a digit and cap at 6 characters
+  const digitsOnly = otpEl.value.replace(/\D/g, '').slice(0, 6);
+  if (otpEl.value !== digitsOnly) {
+    otpEl.value = digitsOnly;
+  }
+
+  counterEl.textContent = digitsOnly.length + ' / 6 digits';
+
+  // Enable the button ONLY when the OTP is exactly 6 digits (min and max)
+  verifyBtn.disabled = digitsOnly.length !== 6;
+}
+
+async function verifyOtp(btn) {
+  const otp = document.getElementById('otpInput').value.trim();
+  const msgEl = document.getElementById('otpMsg');
+  if (otp.length !== 6) {
+    msgEl.textContent = 'Enter your six digit OTP';
+    msgEl.className = 'msg error';
+    return;
+  }
+  setBtnLoading(btn, 'Verifying...');
+  try {
+    const snap = await getDoc(doc(db, 'signupOtps', pendingEmail));
+    if (!snap.exists() || String(snap.data().otp) !== String(otp)) {
+      msgEl.textContent = 'Wrong OTP';
+      msgEl.className = 'msg error';
+      resetBtn(btn);
+      return;
+    }
+
+    await setDoc(doc(db, 'signupOtps', pendingEmail), { verified: true }, { merge: true });
+
+    document.getElementById('otpStep').classList.add('hidden');
+    document.getElementById('referralStep').classList.remove('hidden');
+
+    // If the user arrived via a referral link, pre-fill and validate it
+    if (referredByCode) {
+      document.getElementById('referralCodeInput').value = referredByCode;
+      onReferralInput();
+    }
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'Connection error, please try again';
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+let referralDebounceTimer = null;
+let referralValidated = false;
+
+function onReferralInput() {
+  const code = document.getElementById('referralCodeInput').value.trim();
+  const msgEl = document.getElementById('referralMsg');
+  referralValidated = false;
+
+  clearTimeout(referralDebounceTimer);
+
+  if (!code) {
+    msgEl.textContent = '';
+    msgEl.className = 'msg';
+    return;
+  }
+
+  msgEl.textContent = 'Checking...';
+  msgEl.className = 'msg';
+
+  referralDebounceTimer = setTimeout(async () => {
+    try {
+      // Note: at this point in signup the visitor is NOT authenticated yet
+      // (account creation happens later, in Step D). Firestore rules only
+      // allow reading /users/{uid} when logged in, so we can't fetch the
+      // referrer's user doc here. The /usernames/{username} doc is public
+      // read, so we look up the referrer's name from there instead.
+      const unameSnap = await getDoc(usernameDocRef(code));
+      if (!unameSnap.exists() || !unameSnap.data().fullName) {
+        msgEl.textContent = 'No Referral Found';
+        msgEl.className = 'msg error';
+        referralValidated = false;
+        return;
+      }
+      msgEl.textContent = 'Referred by: ' + unameSnap.data().fullName;
+      msgEl.className = 'msg success';
+      referralValidated = true;
+    } catch (e) {
+      console.error(e);
+      msgEl.textContent = 'Connection error';
+      msgEl.className = 'msg error';
+    }
+  }, 500);
+}
+
+function continueFromReferral() {
+  const code = document.getElementById('referralCodeInput').value.trim();
+  const msgEl = document.getElementById('referralMsg');
+
+  if (code && !referralValidated) {
+    msgEl.textContent = 'Referral code is invalid, fix it or click Skip';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  referredByCode = code || '';
+  document.getElementById('referralStep').classList.add('hidden');
+  document.getElementById('credentialsStep').classList.remove('hidden');
+}
+
+function skipReferral() {
+  referredByCode = '';
+  document.getElementById('referralStep').classList.add('hidden');
+  document.getElementById('credentialsStep').classList.remove('hidden');
+}
+
+async function setCredentials(btn) {
+  const fullName = document.getElementById('newFullName').value.trim();
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const msgEl = document.getElementById('credMsg');
+
+  let localNumber = document.getElementById('phoneInput').value.trim();
+  let fullPhone = '';
+  if (localNumber) {
+    localNumber = localNumber.replace(/^0+/, '');
+    fullPhone = selectedDialCode + localNumber;
+  }
+
+  if (!fullName) {
+    msgEl.textContent = 'Please enter your full name';
+    msgEl.className = 'msg error';
+    return;
+  }
+  if (username.length < 3) {
+    msgEl.textContent = 'Username must be at least 3 characters';
+    msgEl.className = 'msg error';
+    return;
+  }
+  if (password.length < 6) {
+    msgEl.textContent = 'Password must be at least 6 characters';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  setBtnLoading(btn, 'Creating account...');
+  const usernameLower = username.toLowerCase();
+
+  try {
+    // Run the 3 independent lookups together instead of one-by-one — each
+    // network round trip was adding to the wait before account creation.
+    const [otpSnap, existingUsername, refUnameSnap] = await Promise.all([
+      getDoc(doc(db, 'signupOtps', pendingEmail)),
+      getDoc(usernameDocRef(usernameLower)),
+      referredByCode ? getDoc(usernameDocRef(referredByCode)) : Promise.resolve(null)
+    ]);
+
+    // 1) Email must be OTP-verified
+    if (!otpSnap.exists() || otpSnap.data().verified !== true) {
+      msgEl.textContent = 'Email is not verified yet, please verify OTP first';
+      msgEl.className = 'msg error';
+      resetBtn(btn);
+      return;
+    }
+
+    // 2) Username must be free
+    if (existingUsername.exists()) {
+      msgEl.textContent = 'Username already exist please choose another one';
+      msgEl.className = 'msg error';
+      resetBtn(btn);
+      return;
+    }
+
+    // 3) Resolve referrer (if any)
+    let referrerUid = '';
+    if (refUnameSnap && refUnameSnap.exists()) referrerUid = refUnameSnap.data().uid;
+
+    // 4) Create the Auth account AND bump the global user counter at the
+    // same time — they don't depend on each other's result, so running them
+    // sequentially was just adding an extra network round trip for nothing.
+    let blueTick = false;
+    const [cred] = await Promise.all([
+      createUserWithEmailAndPassword(auth, pendingEmail, password),
+      runTransaction(db, async (tx) => {
+        const statsSnap = await tx.get(statsDocRef());
+        const totalUsers = statsSnap.exists() ? (statsSnap.data().totalUsers || 0) : 0;
+        blueTick = totalUsers < BLUE_TICK_LIMIT;
+        tx.set(statsDocRef(), { totalUsers: totalUsers + 1 }, { merge: true });
+      })
+    ]);
+    const uid = cred.user.uid;
+    const walletAddress = generateWalletAddress();
+
+    // 6) User profile + username index + referrer credit + OTP cleanup —
+    // none of these depend on each other, so fire them together.
+    const writes = [
+      setDoc(userDocRef(uid), {
+        username: usernameLower,
+        fullName,
+        email: pendingEmail,
+        phone: fullPhone || '',
+        walletAddress,
+        collectedCoins: 0,
+        walletBalance: 0,
+        referralBonus: 0,
+        sessionsCompleted: 0,
+        sessionsMissed: 0,
+        referrals: 0,
+        referredBy: referrerUid ? referredByCode : '',
+        blueTick,
+        lastMineTime: null,
+        createdAt: serverTimestamp()
+      }),
+      setDoc(usernameDocRef(usernameLower), { uid, email: pendingEmail, fullName }),
+      setDoc(doc(db, 'signupOtps', pendingEmail), { registered: true }, { merge: true })
+    ];
+    if (referrerUid) {
+      writes.push(setDoc(userDocRef(referrerUid), {
+        referrals: increment(1),
+        referralBonus: increment(REFERRAL_BONUS)
+      }, { merge: true }));
+      writes.push(addDoc(collection(db, 'transactions'), {
+        tid: generateTID(),
+        type: 'referral_bonus',
+        status: 'locked',
+        amount: REFERRAL_BONUS,
+        toUid: referrerUid,
+        toUsername: referredByCode,
+        fromUsername: usernameLower,
+        timestamp: serverTimestamp()
+      }));
+    }
+    await Promise.all(writes);
+
+    msgEl.textContent = 'Account created! Redirecting...';
+    msgEl.className = 'msg success';
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+  } catch (e) {
+    console.error(e);
+    let friendly = 'Something went wrong, please try again';
+    if (e.code === 'auth/email-already-in-use') friendly = 'Email already registered please click on login';
+    if (e.code === 'auth/weak-password') friendly = 'Password must be at least 6 characters';
+    msgEl.textContent = friendly;
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+window.goBackToEmailStep = function() {
+  document.getElementById('otpStep').classList.add('hidden');
+  document.getElementById('emailStep').classList.remove('hidden');
+  document.getElementById('otpInput').value = '';
+  onOtpInput();
+  document.getElementById('otpMsg').textContent = '';
+  document.getElementById('emailMsg').textContent = '';
+  pendingEmail = '';
+};
+
+window.requestOtp = requestOtp;
+window.verifyOtp = verifyOtp;
+window.onOtpInput = onOtpInput;
+window.onPhoneInput = onPhoneInput;
+window.onReferralInput = onReferralInput;
+window.continueFromReferral = continueFromReferral;
+window.skipReferral = skipReferral;
+window.setCredentials = setCredentials;
+window.renderCountryList = renderCountryList;
+window.toggleCountryList = toggleCountryList;
+</script>
+
+</body>
+</html>

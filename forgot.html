@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Reset Password</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .logo-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #bbb; font-size: 13px; margin-bottom: 24px; }
+  input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  input::placeholder { color: #999; }
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #a98a54, #a8543a);
+  }
+  .link-btn {
+    background: none;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px;
+    margin-top: 4px;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .msg.error { color: #ff6b6b; }
+  .msg.success { color: #6bff9e; }
+  .hidden { display: none; }
+  .step-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+  .step-dots span {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+  .step-dots span.active {
+    background: #f7b733;
+  }
+  .pass-hint {
+    font-size: 11px;
+    color: #888;
+    margin: -8px 0 12px;
+    text-align: left;
+  }
+  .pass-hint.ok { color: #6bff9e; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="logo-circle">IK</div>
+  <h1>Reset Password</h1>
+  <p class="subtitle" id="subtitle">Enter your registered email to receive a reset code</p>
+
+  <div class="step-dots">
+    <span id="dot1" class="active"></span>
+    <span id="dot2"></span>
+    <span id="dot3"></span>
+  </div>
+
+  <!-- STEP 1 - email -->
+  <div id="forgotEmailForm">
+    <input type="email" id="forgotEmailInput" placeholder="Enter your email address">
+    <button onclick="requestPasswordResetOtp(this, false)">Send Reset Code</button>
+    <div class="link-btn" onclick="window.location.href='index.html'">Back to Login</div>
+    <div id="forgotEmailMsg" class="msg"></div>
+  </div>
+
+  <!-- STEP 2 - enter the code from the emailed reset link -->
+  <div id="forgotOtpForm" class="hidden">
+    <p style="font-size:13px; color:#ddd; line-height:1.6; margin-bottom:16px; text-align:left;">
+      We've emailed you a reset code — you can open the email on <strong>any device</strong> (phone, another computer, etc). Copy the code from the email and paste it below.
+    </p>
+    <input type="text" id="resetCodeInput" placeholder="Paste reset code here">
+    <button onclick="verifyResetCode(this)">Verify Code</button>
+    <button class="link-btn" style="width:100%; background:none;" onclick="requestPasswordResetOtp(null, true)">Resend Code</button>
+    <div class="link-btn" onclick="window.location.href='index.html'">Back to Login</div>
+    <div id="forgotOtpMsg" class="msg"></div>
+  </div>
+
+  <!-- STEP 3 - new password -->
+  <div id="forgotNewPasswordForm" class="hidden">
+    <input type="password" id="forgotNewPasswordInput" placeholder="New password" oninput="checkPasswordHint()">
+    <div class="pass-hint" id="passHint">Min 6 characters, with at least 1 uppercase, 1 lowercase &amp; 1 number</div>
+    <input type="password" id="forgotConfirmPasswordInput" placeholder="Confirm new password">
+    <button onclick="submitNewPassword(this)">Update Password</button>
+    <div id="forgotNewPasswordMsg" class="msg"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import {
+  auth, sendPasswordResetEmail, verifyPasswordResetCode, confirmPasswordReset
+} from './firebase-shared.js';
+
+let pendingResetEmail = '';
+let pendingOobCode = '';
+
+// ===== BUTTON LOADING STATE HELPERS =====
+function setBtnLoading(btn, loadingText) {
+  if (!btn) return;
+  if (btn.dataset.originalText === undefined) {
+    btn.dataset.originalText = btn.textContent;
+  }
+  btn.textContent = loadingText || 'Please wait...';
+  btn.disabled = true;
+}
+
+function resetBtn(btn) {
+  if (!btn) return;
+  if (btn.dataset.originalText !== undefined) {
+    btn.textContent = btn.dataset.originalText;
+  }
+  btn.disabled = false;
+}
+
+function goToStep(step) {
+  document.getElementById('forgotEmailForm').classList.toggle('hidden', step !== 1);
+  document.getElementById('forgotOtpForm').classList.toggle('hidden', step !== 2);
+  document.getElementById('forgotNewPasswordForm').classList.toggle('hidden', step !== 3);
+
+  document.getElementById('dot1').classList.toggle('active', step >= 1);
+  document.getElementById('dot2').classList.toggle('active', step >= 2);
+  document.getElementById('dot3').classList.toggle('active', step >= 3);
+
+  const subtitle = document.getElementById('subtitle');
+  if (step === 1) subtitle.textContent = 'Enter your registered email to receive a reset code';
+  if (step === 2) subtitle.textContent = 'Enter the code we emailed you';
+  if (step === 3) subtitle.textContent = 'Choose a new password for your account';
+}
+
+async function requestPasswordResetOtp(btn, isResend) {
+  const email = isResend ? pendingResetEmail : document.getElementById('forgotEmailInput').value.trim();
+  const msgEl = isResend ? document.getElementById('forgotOtpMsg') : document.getElementById('forgotEmailMsg');
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    msgEl.textContent = 'Please enter correct email';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  msgEl.textContent = 'Sending reset code...';
+  msgEl.className = 'msg';
+  if (btn) setBtnLoading(btn, 'Sending...');
+
+  try {
+    // Points back to this same page (configure this as the action URL in
+    // Firebase Console > Authentication > Templates > Password reset).
+    // We don't rely on the user clicking this link though — the code
+    // embedded in it (oobCode) can be copied out of the email and pasted
+    // into the Verify Code box below, which works from any device.
+    await sendPasswordResetEmail(auth, email, {
+      url: window.location.origin + window.location.pathname
+    });
+    pendingResetEmail = email;
+    goToStep(2);
+    const otpMsg = document.getElementById('forgotOtpMsg');
+    otpMsg.textContent = 'OTP sent to your ' + email;
+    otpMsg.className = 'msg success';
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = (e.code === 'auth/user-not-found')
+      ? 'No account found with this email' : 'Could not send reset code, please try again';
+    msgEl.className = 'msg error';
+  } finally {
+    if (btn) resetBtn(btn);
+  }
+}
+
+// Pulls the oobCode out of a pasted reset link/code, in case the user
+// pastes the whole URL instead of just the code value.
+function extractOobCode(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed.includes('oobCode=')) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    return url.searchParams.get('oobCode') || trimmed;
+  } catch (e) {
+    const match = trimmed.match(/oobCode=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : trimmed;
+  }
+}
+
+async function verifyResetCode(btn) {
+  const raw = document.getElementById('resetCodeInput').value;
+  const msgEl = document.getElementById('forgotOtpMsg');
+  const code = extractOobCode(raw);
+
+  if (!code) {
+    msgEl.textContent = 'Please paste the reset code from your email';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  setBtnLoading(btn, 'Verifying...');
+
+  try {
+    const email = await verifyPasswordResetCode(auth, code);
+    pendingResetEmail = email;
+    pendingOobCode = code;
+    goToStep(3);
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'Invalid or expired code, please request a new one';
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+// If the user arrived here via the emailed reset link, Firebase appends
+// ?mode=resetPassword&oobCode=XXXX to the URL — detect it and jump to step 3.
+async function checkForResetLink() {
+  const params = new URLSearchParams(window.location.search);
+  const oobCode = params.get('oobCode');
+  if (params.get('mode') !== 'resetPassword' || !oobCode) return;
+
+  try {
+    const email = await verifyPasswordResetCode(auth, oobCode);
+    pendingResetEmail = email;
+    pendingOobCode = oobCode;
+    goToStep(3);
+  } catch (e) {
+    console.error(e);
+    const msgEl = document.getElementById('forgotEmailMsg');
+    msgEl.textContent = 'This reset link is invalid or expired, please request a new one';
+    msgEl.className = 'msg error';
+  }
+}
+checkForResetLink();
+
+// Min 6, max 32 chars, at least 1 uppercase, 1 lowercase, and 1 digit
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,32}$/;
+
+function checkPasswordHint() {
+  const password = document.getElementById('forgotNewPasswordInput').value;
+  const hintEl = document.getElementById('passHint');
+  if (!password) {
+    hintEl.textContent = 'Min 6 characters, with at least 1 uppercase, 1 lowercase & 1 number';
+    hintEl.className = 'pass-hint';
+    return;
+  }
+  if (PASSWORD_RULE.test(password)) {
+    hintEl.textContent = 'Looks good!';
+    hintEl.className = 'pass-hint ok';
+  } else {
+    hintEl.textContent = 'Min 6 characters, with at least 1 uppercase, 1 lowercase & 1 number';
+    hintEl.className = 'pass-hint';
+  }
+}
+
+async function submitNewPassword(btn) {
+  const password = document.getElementById('forgotNewPasswordInput').value;
+  const confirmPassword = document.getElementById('forgotConfirmPasswordInput').value;
+  const msgEl = document.getElementById('forgotNewPasswordMsg');
+
+  if (!PASSWORD_RULE.test(password)) {
+    msgEl.textContent = 'Password needs 1 uppercase, 1 lowercase, 1 number, and at least 6 characters';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    msgEl.textContent = 'Passwords do not match';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  setBtnLoading(btn, 'Updating...');
+
+  try {
+    await confirmPasswordReset(auth, pendingOobCode, password);
+    msgEl.textContent = 'Password updated! Redirecting to login...';
+    msgEl.className = 'msg success';
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1500);
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'This code has expired, please request a new one';
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+window.requestPasswordResetOtp = requestPasswordResetOtp;
+window.verifyResetCode = verifyResetCode;
+window.checkPasswordHint = checkPasswordHint;
+window.submitNewPassword = submitNewPassword;
+</script>
+
+</body>
+</html>

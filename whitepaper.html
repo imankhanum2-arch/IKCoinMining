@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - White Paper</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .back-btn {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    font-size: 18px;
+    text-decoration: none;
+  }
+  .logo-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800;
+    margin: 8px auto 18px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+
+  /* ===== Big status banner ===== */
+  .status-banner {
+    font-size: 27px;
+    font-weight: 800;
+    line-height: 1.3;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.3px;
+    margin-bottom: 6px;
+  }
+  .pulse-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #f7b733;
+    margin-right: 8px;
+    box-shadow: 0 0 0 rgba(247,183,51,0.6);
+    animation: pulse 1.6s infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(247,183,51,0.6); }
+    70%  { box-shadow: 0 0 0 12px rgba(247,183,51,0); }
+    100% { box-shadow: 0 0 0 0 rgba(247,183,51,0); }
+  }
+
+  .subtitle {
+    color: #bbb;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* Progress bar */
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #999;
+    margin-bottom: 6px;
+  }
+  .progress-label span:last-child { color: #f7b733; font-weight: 700; }
+  .progress-track {
+    height: 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 35%;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+  }
+
+  .info-box {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  .info-box .info-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f7b733;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-box p {
+    font-size: 13px;
+    color: #ddd;
+    line-height: 1.6;
+  }
+
+  /* Highlight box for the blue-tick / KYC priority news */
+  .highlight-box {
+    background: rgba(29,155,240,0.10);
+    border: 1px solid rgba(29,155,240,0.4);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  .highlight-box .info-title { color: #1d9bf0; }
+  .highlight-box p { color: #cfe8fb; }
+  .highlight-box .slots-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #9fd6f7;
+  }
+  .badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(29,155,240,0.15);
+    color: #1d9bf0;
+    border: 1px solid #1d9bf0;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .steps {
+    text-align: left;
+    margin: 4px 0 18px;
+  }
+  .step-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    flex: 0 0 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(247,183,51,0.15);
+    border: 1px solid #f7b733;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-item.done .step-num {
+    background: rgba(107,255,158,0.15);
+    border-color: #6bff9e;
+    color: #6bff9e;
+  }
+  .step-text .step-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #eee;
+    margin-bottom: 2px;
+  }
+  .step-text .step-desc {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.5;
+  }
+
+  button, .btn-link {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.15s;
+    margin-bottom: 10px;
+  }
+  button:active, .btn-link:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #ddd;
+  }
+
+  .notify-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .notify-row input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+  .notify-row input::placeholder { color: #999; }
+  .notify-row button {
+    width: auto;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+  .notify-msg { font-size: 12px; min-height: 16px; margin-bottom: 10px; }
+  .notify-msg.success { color: #6bff9e; }
+  .notify-msg.error { color: #ff6b6b; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="index.html" class="back-btn" aria-label="Back to dashboard">←</a>
+
+  <div class="logo-circle">IK</div>
+
+  <div class="status-banner"><span class="pulse-dot"></span>White Paper<br>In Development . . .</div>
+  <p class="subtitle">IK Coin project details are being finalized</p>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Drafting in progress</span>
+      <span>Internal discussion</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+  </div>
+
+  <div class="info-box">
+    <div class="info-title">📄 Where things stand</div>
+    <p>
+      IK Coin is currently in its development phase. The full White Paper —
+      tokenomics, mining rules, and long-term roadmap — is still being
+      discussed and drafted internally by the team and will be published
+      here once finalized.
+    </p>
+  </div>
+
+  <div class="highlight-box">
+    <div class="info-title">✔️ Blue Tick — First 10,000 Users</div>
+    <p>
+      As an early step ahead of the full roadmap, the <strong>first 10,000
+      users</strong> of IK Coin will get <strong>KYC started for them first</strong>,
+      and will receive the <strong>verified blue-check badge</strong> once approved.
+    </p>
+    <div class="slots-row">
+      <span class="badge-pill">✔ Priority KYC</span>
+      <span>Limited to the first 10,000 accounts</span>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step-item done">
+      <div class="step-num">✓</div>
+      <div class="step-text">
+        <div class="step-title">Mining Phase — Live</div>
+        <div class="step-desc">Users are actively mining and growing their IK Coin balance.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <div class="step-title">Priority KYC (First 10,000)</div>
+        <div class="step-desc">Early users get verified first and receive the blue-check badge.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <div class="step-title">Full White Paper Release</div>
+        <div class="step-desc">Complete tokenomics, roadmap, and mining details published after internal review.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notify-row">
+    <input type="email" id="notifyEmail" placeholder="Email for White Paper alert">
+    <button onclick="notifyMe()">Notify Me</button>
+  </div>
+  <div id="notifyMsg" class="notify-msg"></div>
+
+  <a href="kyc.html" class="btn-link btn-secondary">View KYC Status</a>
+  <a href="index.html" class="btn-link btn-secondary">Back to Dashboard</a>
+</div>
+
+<script>
+function notifyMe() {
+  const emailEl = document.getElementById('notifyEmail');
+  const msgEl = document.getElementById('notifyMsg');
+  const email = emailEl.value.trim();
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    msgEl.textContent = 'Please enter a valid email address';
+    msgEl.className = 'notify-msg error';
+    return;
+  }
+
+  // Hook this up to your backend (API_URL) with an action like 'whitepaperNotify'
+  // if you want these emails collected server-side.
+  msgEl.textContent = "You're on the list! We'll email you when the White Paper is released.";
+  msgEl.className = 'notify-msg success';
+  emailEl.value = '';
+}
+</script>
+
+</body>
+</html>

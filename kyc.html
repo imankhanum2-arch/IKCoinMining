@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - KYC</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .back-btn {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    font-size: 18px;
+    text-decoration: none;
+  }
+  .logo-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800;
+    margin: 8px auto 18px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+
+  /* ===== Big "Coming Soon" banner ===== */
+  .coming-soon {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.25;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .pulse-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #f7b733;
+    margin-right: 8px;
+    box-shadow: 0 0 0 rgba(247,183,51,0.6);
+    animation: pulse 1.6s infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(247,183,51,0.6); }
+    70%  { box-shadow: 0 0 0 12px rgba(247,183,51,0); }
+    100% { box-shadow: 0 0 0 0 rgba(247,183,51,0); }
+  }
+
+  .subtitle {
+    color: #bbb;
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+
+  .info-box {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  .info-box .info-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f7b733;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-box p {
+    font-size: 13px;
+    color: #ddd;
+    line-height: 1.6;
+  }
+
+  .steps {
+    text-align: left;
+    margin: 4px 0 18px;
+  }
+  .step-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    flex: 0 0 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(247,183,51,0.15);
+    border: 1px solid #f7b733;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-text .step-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #eee;
+    margin-bottom: 2px;
+  }
+  .step-text .step-desc {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.5;
+  }
+
+  .whitepaper-note {
+    background: rgba(29,155,240,0.08);
+    border: 1px solid rgba(29,155,240,0.35);
+    border-radius: 14px;
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 12.5px;
+    color: #cfe8fb;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .whitepaper-note strong { color: #fff; }
+  .whitepaper-note a {
+    color: #1d9bf0;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .whitepaper-note a:hover { text-decoration: underline; }
+
+  button, .btn-link {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.15s;
+    margin-bottom: 10px;
+  }
+  button:active, .btn-link:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #ddd;
+  }
+
+  .notify-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .notify-row input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+  .notify-row input::placeholder { color: #999; }
+  .notify-row button {
+    width: auto;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+  .notify-msg { font-size: 12px; min-height: 16px; margin-bottom: 10px; }
+  .notify-msg.success { color: #6bff9e; }
+  .notify-msg.error { color: #ff6b6b; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="index.html" class="back-btn" aria-label="Back to dashboard">←</a>
+
+  <div class="logo-circle">IK</div>
+
+  <div class="coming-soon"><span class="pulse-dot"></span>KYC Coming Soon . . .</div>
+  <p class="subtitle">Identity verification for IK Coin holders</p>
+
+  <div class="info-box">
+    <div class="info-title">🪪 What is KYC?</div>
+    <p>
+      KYC (Know Your Customer) is the identity verification step that unlocks
+      higher mining rates, the verified blue-check badge, and withdrawal /
+      exchange listing eligibility once it goes live.
+    </p>
+  </div>
+
+  <div class="steps">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <div class="step-title">Mining Phase (Current)</div>
+        <div class="step-desc">Keep mining daily and growing your IK Coin balance — no KYC required yet.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <div class="step-title">KYC Rollout</div>
+        <div class="step-desc">Document upload, selfie verification, and account review will open in phases as announced.</div>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <div class="step-title">Verified Badge & Benefits</div>
+        <div class="step-desc">Verified users get the blue-check badge, boosted mining rate, and priority for future listing.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="whitepaper-note">
+    📄 <strong>KYC will be announced according to the Whitepaper roadmap.</strong>
+    Exact dates, required documents, and verification tiers are outlined there
+    and will be confirmed closer to rollout. Please check the
+    <a href="whitepaper.html">White Paper</a> for the current phase and timeline.
+  </div>
+
+  <div class="notify-row">
+    <input type="email" id="notifyEmail" placeholder="Email for KYC launch alert">
+    <button onclick="notifyMe()">Notify Me</button>
+  </div>
+  <div id="notifyMsg" class="notify-msg"></div>
+
+  <a href="whitepaper.html" class="btn-link btn-secondary">View White Paper</a>
+  <a href="index.html" class="btn-link btn-secondary">Back to Dashboard</a>
+</div>
+
+<script>
+function notifyMe() {
+  const emailEl = document.getElementById('notifyEmail');
+  const msgEl = document.getElementById('notifyMsg');
+  const email = emailEl.value.trim();
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    msgEl.textContent = 'Please enter a valid email address';
+    msgEl.className = 'notify-msg error';
+    return;
+  }
+
+  // Store locally so the user sees a confirmation.
+  // Hook this up to your backend (API_URL) with an action like 'kycNotify'
+  // if you want these emails collected server-side.
+  msgEl.textContent = "You're on the list! We'll email you when KYC opens.";
+  msgEl.className = 'notify-msg success';
+  emailEl.value = '';
+}
+</script>
+
+</body>
+</html>
