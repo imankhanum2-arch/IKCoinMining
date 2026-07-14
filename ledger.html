@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Ledger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .back-btn {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 18px; text-decoration: none;
+    flex-shrink: 0;
+  }
+  h1 { font-size: 19px; }
+  .subtitle { color: #999; font-size: 12px; margin-top: 2px; }
+
+  .live-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6bff9e;
+    background: rgba(107,255,158,0.12);
+    border: 1px solid rgba(107,255,158,0.35);
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .live-dot span.dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #6bff9e;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .ledger-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .row-mid { flex: 1; min-width: 0; }
+  .row-username {
+    font-size: 14px; font-weight: 700; color: #eee;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .row-time {
+    font-size: 11.5px; color: #999; margin-top: 2px;
+  }
+  .row-amount {
+    font-size: 14px; font-weight: 800; color: #6bff9e;
+    white-space: nowrap;
+  }
+
+  .empty-note, .loading-note {
+    text-align: center; color: #888; font-size: 13px; padding: 30px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header-row">
+    <a href="index.html" class="back-btn">←</a>
+    <div>
+      <h1>Mining Ledger</h1>
+      <div class="subtitle">Live feed of everyone's mining activity</div>
+    </div>
+  </div>
+
+  <div class="live-dot"><span class="dot"></span> LIVE</div>
+
+  <div id="ledgerList">
+    <div class="loading-note">Loading ledger...</div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  db, collection, query, where, orderBy, limit, onSnapshot
+} from './firebase-shared.js';
+
+const listEl = document.getElementById('ledgerList');
+let entries = []; // { username, amount, ms }
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+// Turns a millisecond timestamp into "2 seconds ago", "1 minute ago", etc.
+function timeAgo(ms) {
+  const diff = Math.max(0, Date.now() - ms);
+  const sec = Math.floor(diff / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return sec + ' second' + (sec === 1 ? '' : 's') + ' ago';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + ' minute' + (min === 1 ? '' : 's') + ' ago';
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + ' hour' + (hr === 1 ? '' : 's') + ' ago';
+  const day = Math.floor(hr / 24);
+  return day + ' day' + (day === 1 ? '' : 's') + ' ago';
+}
+
+function render() {
+  if (!entries.length) {
+    listEl.innerHTML = '<div class="empty-note">No mining activity yet</div>';
+    return;
+  }
+  listEl.innerHTML = entries.map(e => `
+    <div class="ledger-row">
+      <div class="avatar">${escapeHtml((e.username || '?').charAt(0).toUpperCase())}</div>
+      <div class="row-mid">
+        <div class="row-username">@${escapeHtml(e.username || 'unknown')}</div>
+        <div class="row-time" data-ms="${e.ms}">${timeAgo(e.ms)}</div>
+      </div>
+      <div class="row-amount">+${Number(e.amount || 0).toFixed(2)} IKT</div>
+    </div>
+  `).join('');
+}
+
+// Only re-render the "time ago" text every second — no need to redraw the
+// whole list just for the clock to tick.
+setInterval(() => {
+  document.querySelectorAll('.row-time[data-ms]').forEach(el => {
+    el.textContent = timeAgo(Number(el.dataset.ms));
+  });
+}, 1000);
+
+const ledgerQuery = query(
+  collection(db, 'transactions'),
+  where('type', '==', 'mined'),
+  orderBy('timestamp', 'desc'),
+  limit(50)
+);
+
+onSnapshot(ledgerQuery, (snapshot) => {
+  entries = snapshot.docs.map(docSnap => {
+    const tx = docSnap.data();
+    const ms = tx.timestamp && tx.timestamp.toMillis ? tx.timestamp.toMillis() : Date.now();
+    return { username: tx.username, amount: tx.amount, ms };
+  });
+  render();
+}, (err) => {
+  console.error(err);
+  listEl.innerHTML = '<div class="empty-note">Could not load ledger, please try again later</div>';
+});
+</script>
+
+</body>
+</html>

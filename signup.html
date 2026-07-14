@@ -179,6 +179,7 @@
       oninput="onOtpInput()">
     <div class="otp-counter" id="otpCounter">0 / 6 digits</div>
     <button id="verifyOtpBtn" onclick="verifyOtp(this)" disabled>Verify now</button>
+    <button id="resendOtpBtn" class="link-btn" style="width:100%; background:none; margin-top:8px;" onclick="resendOtp(this)">Resend OTP</button>
     <div id="otpMsg" class="msg"></div>
     <div class="back-link" onclick="goBackToEmailStep()">← Change email</div>
     <div class="back-link" onclick="window.location.href='index.html'">Already have an account? Login</div>
@@ -194,6 +195,7 @@
 
   <!-- STEP D - Final details, phone optional -->
   <div id="credentialsStep" class="hidden">
+    <div class="field-hint hidden" id="referredByNote" style="color:#6bff9e; text-align:center; margin-bottom:14px;"></div>
     <input type="text" id="newFullName" placeholder="Full Name">
 
     <div class="phone-row">
@@ -420,27 +422,67 @@ async function requestOtp(btn) {
     document.getElementById('otpInput').focus();
     resetBtn(btn);
 
-    const otpMsg = document.getElementById('otpMsg');
-    otpMsg.textContent = 'Sending email...';
-    otpMsg.className = 'msg';
-
-    // Don't make the user wait on Apps Script (it's slow, 3-6s) before they
-    // can even see the OTP screen — send it in the background instead.
-    sendOtpEmail(email, otp).then((relayResult) => {
-      if (relayResult.success) {
-        otpMsg.textContent = 'OTP sent to ' + email;
-        otpMsg.className = 'msg success';
-      } else {
-        otpMsg.textContent = 'Could not send email, tap Resend to try again';
-        otpMsg.className = 'msg error';
-      }
-    });
+    sendOtpNow(otp, false);
   } catch (e) {
     console.error(e);
-    msgEl.textContent = 'Connection error, please try again';
+    msgEl.textContent = friendlyFirebaseError(e);
     msgEl.className = 'msg error';
     resetBtn(btn);
   }
+}
+
+// Sends the OTP email via the relay, in the background so the OTP screen
+// never has to wait on the slow Apps Script round trip. isResend=true just
+// changes the status text shown while it's in flight.
+function sendOtpNow(otp, isResend) {
+  const otpMsg = document.getElementById('otpMsg');
+  otpMsg.textContent = isResend ? 'Resending email...' : 'Sending email...';
+  otpMsg.className = 'msg';
+
+  sendOtpEmail(pendingEmail, otp).then((relayResult) => {
+    if (relayResult.success) {
+      otpMsg.textContent = 'OTP sent to ' + pendingEmail;
+      otpMsg.className = 'msg success';
+    } else {
+      otpMsg.textContent = 'Could not send email — check your connection and tap Resend OTP below';
+      otpMsg.className = 'msg error';
+    }
+  });
+}
+
+// Generates a fresh OTP and re-sends it, without forcing the user back to
+// the email step (the old flow told people to "tap Resend" but had no
+// actual resend button, so a failed send was a dead end).
+async function resendOtp(btn) {
+  const otpMsg = document.getElementById('otpMsg');
+  if (!pendingEmail) return;
+  setBtnLoading(btn, 'Resending...');
+  try {
+    const otp = generateOtp();
+    await setDoc(doc(db, 'signupOtps', pendingEmail), {
+      otp, verified: false, registered: false, createdAt: serverTimestamp()
+    }, { merge: true });
+    sendOtpNow(otp, true);
+  } catch (e) {
+    console.error(e);
+    otpMsg.textContent = friendlyFirebaseError(e);
+    otpMsg.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+// Firebase silently throttles repeated auth/Firestore calls from the same
+// device ("too-many-requests") which otherwise just looked like a generic
+// "Connection error" with no clue what actually happened.
+function friendlyFirebaseError(e) {
+  if (e && e.code === 'auth/too-many-requests') {
+    return 'Too many attempts detected — please wait a bit before trying again';
+  }
+  if (e && e.code === 'auth/network-request-failed') {
+    return 'No internet connection, please check your network';
+  }
+  return 'Connection error, please try again';
 }
 
 // ===== OTP FIELD: digits only, exactly 6 digits required to enable the button =====
@@ -482,19 +524,46 @@ async function verifyOtp(btn) {
     await setDoc(doc(db, 'signupOtps', pendingEmail), { verified: true }, { merge: true });
 
     document.getElementById('otpStep').classList.add('hidden');
-    document.getElementById('referralStep').classList.remove('hidden');
 
-    // If the user arrived via a referral link, pre-fill and validate it
     if (referredByCode) {
+      // Came in via a referral link — don't make them sit through a
+      // separate "enter referral code" screen, just go straight to details.
       document.getElementById('referralCodeInput').value = referredByCode;
-      onReferralInput();
+      referralValidated = true; // provisional, corrected below if invalid
+      document.getElementById('credentialsStep').classList.remove('hidden');
+      validateReferralQuietly(referredByCode);
+    } else {
+      document.getElementById('referralStep').classList.remove('hidden');
     }
   } catch (e) {
     console.error(e);
-    msgEl.textContent = 'Connection error, please try again';
+    msgEl.textContent = friendlyFirebaseError(e);
     msgEl.className = 'msg error';
   } finally {
     resetBtn(btn);
+  }
+}
+
+// Validates a referral that came from a URL (?ref=) in the background,
+// without blocking the credentials form. If it turns out invalid, we just
+// drop the referral silently instead of holding up account creation.
+async function validateReferralQuietly(code) {
+  const noteEl = document.getElementById('referredByNote');
+  try {
+    const unameSnap = await getDoc(usernameDocRef(code));
+    if (!unameSnap.exists() || !unameSnap.data().fullName) {
+      referredByCode = '';
+      referralValidated = false;
+      if (noteEl) noteEl.classList.add('hidden');
+      return;
+    }
+    if (noteEl) {
+      noteEl.textContent = '✓ Referred by ' + unameSnap.data().fullName;
+      noteEl.classList.remove('hidden');
+    }
+  } catch (e) {
+    console.error(e);
+    // Leave referredByCode as-is; setCredentials re-checks it server-side anyway.
   }
 }
 
@@ -686,7 +755,7 @@ async function setCredentials(btn) {
     setTimeout(() => { window.location.href = 'index.html'; }, 800);
   } catch (e) {
     console.error(e);
-    let friendly = 'Something went wrong, please try again';
+    let friendly = friendlyFirebaseError(e);
     if (e.code === 'auth/email-already-in-use') friendly = 'Email already registered please click on login';
     if (e.code === 'auth/weak-password') friendly = 'Password must be at least 6 characters';
     msgEl.textContent = friendly;
@@ -707,6 +776,7 @@ window.goBackToEmailStep = function() {
 };
 
 window.requestOtp = requestOtp;
+window.resendOtp = resendOtp;
 window.verifyOtp = verifyOtp;
 window.onOtpInput = onOtpInput;
 window.onPhoneInput = onPhoneInput;

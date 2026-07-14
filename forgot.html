@@ -217,12 +217,19 @@ async function requestPasswordResetOtp(btn, isResend) {
     pendingResetEmail = email;
     goToStep(2);
     const otpMsg = document.getElementById('forgotOtpMsg');
-    otpMsg.textContent = 'OTP sent to your ' + email;
+    otpMsg.textContent = 'Reset code sent to ' + email + ' — please also check your Spam/Junk folder';
     otpMsg.className = 'msg success';
   } catch (e) {
     console.error(e);
-    msgEl.textContent = (e.code === 'auth/user-not-found')
-      ? 'No account found with this email' : 'Could not send reset code, please try again';
+    if (e.code === 'auth/user-not-found') {
+      msgEl.textContent = 'No account found with this email';
+    } else if (e.code === 'auth/too-many-requests') {
+      msgEl.textContent = 'Too many attempts detected — please wait a while and try again';
+    } else if (e.code === 'auth/network-request-failed') {
+      msgEl.textContent = 'No internet connection, please check your network';
+    } else {
+      msgEl.textContent = 'Could not send reset code, please try again';
+    }
     msgEl.className = 'msg error';
   } finally {
     if (btn) resetBtn(btn);

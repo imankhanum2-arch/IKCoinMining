@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Wallet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .back-btn {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    font-size: 18px;
+    text-decoration: none;
+  }
+  .logo-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800;
+    margin: 8px auto 12px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+  h1 { font-size: 21px; margin-bottom: 4px; }
+  .subtitle { color: #bbb; font-size: 13px; margin-bottom: 20px; }
+
+  .balance-box {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .balance-label { font-size: 11px; color: #999; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .balance-amount {
+    font-size: 30px; font-weight: 800;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab-btn {
+    flex: 1; padding: 11px; border: none; border-radius: 12px;
+    background: rgba(255,255,255,0.06); color: #ccc; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.12);
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, #f7b733, #fc4a1a); color: #fff; border-color: transparent;
+  }
+
+  .tab-panel { display: none; text-align: left; }
+  .tab-panel.active { display: block; }
+
+  .addr-box {
+    background: rgba(255,255,255,0.06);
+    border: 1px dashed rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 12.5px;
+    word-break: break-all;
+    color: #eee;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 15px;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  input::placeholder { color: #999; }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #ddd;
+  }
+
+  .msg { margin-top: 10px; font-size: 13px; min-height: 16px; text-align: center; }
+  .msg.error { color: #ff6b6b; }
+  .msg.success { color: #6bff9e; }
+
+  .section-title { font-size: 13px; font-weight: 700; margin: 22px 0 10px; color: #f7b733; text-align: left; }
+
+  .tx-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .tx-left { flex: 1; min-width: 0; }
+  .tx-tid { font-size: 12px; font-weight: 700; color: #eee; }
+  .tx-meta { font-size: 10.5px; color: #999; margin-top: 2px; }
+  .tx-amount { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .tx-amount.in { color: #6bff9e; }
+  .tx-amount.out { color: #ff8b6b; }
+  .empty-note { font-size: 13px; color: #888; text-align: center; padding: 16px 0; }
+
+  .locked-box {
+    background: rgba(29,155,240,0.08);
+    border: 1px solid rgba(29,155,240,0.35);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    font-size: 12.5px;
+    color: #cfe8fb;
+    line-height: 1.6;
+  }
+
+  .hidden { display: none; }
+
+  .recipient-preview {
+    background: rgba(107,255,158,0.08);
+    border: 1px solid rgba(107,255,158,0.35);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .recipient-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .recipient-meta {
+    font-size: 12px;
+    color: #9fd6f7;
+    margin-top: 3px;
+  }
+  .blue-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: #1d9bf0;
+    color: #fff;
+    font-size: 9px;
+  }
+
+  .qr-box {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .qr-box > div {
+    background: #fff;
+    padding: 10px;
+    border-radius: 12px;
+    line-height: 0;
+  }
+
+  .qr-scan-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .qr-scan-overlay.hidden { display: none; }
+  .qr-scan-box {
+    background: #1b1740;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .qr-scan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #eee;
+  }
+  .qr-scan-close {
+    cursor: pointer;
+    color: #999;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px;
+  }
+  #qrReader {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="#" class="back-btn" id="walletBackBtn" aria-label="Back" onclick="handleWalletBack(); return false;">←</a>
+
+  <div class="logo-circle">IK</div>
+  <h1>My Wallet</h1>
+  <p class="subtitle" id="usernameSub">@...</p>
+
+  <div class="balance-box">
+    <div class="balance-label">WALLET BALANCE (SENDABLE)</div>
+    <div class="balance-amount" id="balanceAmount">0.00 IK</div>
+  </div>
+
+  <div class="balance-box" style="margin-bottom:18px;">
+    <div class="balance-label">MINING BALANCE (LOCKED)</div>
+    <div class="balance-amount" id="miningAmount" style="font-size:22px;">0.00 IKT</div>
+    <button class="btn-secondary" style="margin-top:10px;" disabled>🔒 Migrate to Wallet (after KYC)</button>
+  </div>
+
+  <div class="balance-box" style="margin-bottom:18px;">
+    <div class="balance-label">REFERRAL BONUS (LOCKED)</div>
+    <div class="balance-amount" id="referralBonusAmount" style="font-size:22px;">0.00 IK</div>
+    <button class="btn-secondary" style="margin-top:10px;" disabled>🔒 Migrate to Wallet (after KYC)</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="receiveTabBtn" onclick="switchWalletTab('receive')">📥 Receive</button>
+    <button class="tab-btn" id="sendTabBtn" onclick="switchWalletTab('send')">📤 Send</button>
+  </div>
+
+  <!-- RECEIVE -->
+  <div class="tab-panel active" id="receivePanel">
+    <div class="section-title" style="margin-top:0;">Your Wallet Address</div>
+    <div class="qr-box"><div id="qrCodeBox"></div></div>
+    <div class="addr-box" id="myWalletAddress">Loading...</div>
+    <button class="btn-secondary" onclick="copyWalletAddress()">Copy Address</button>
+    <div id="copyMsg" class="msg"></div>
+  </div>
+
+  <!-- SEND (internal transfer, not real blockchain yet) -->
+  <div class="tab-panel" id="sendPanel">
+    <div class="section-title" style="margin-top:0;">Send IK Coin</div>
+    <button type="button" class="btn-secondary" onclick="openQrScanner()" style="margin-bottom:12px;">📷 Scan QR Code</button>
+    <input type="text" id="sendToInput" placeholder="Username, email, or wallet address" oninput="onRecipientInput()">
+    <div id="recipientMsg" class="msg" style="margin-top:-6px;"></div>
+    <div class="recipient-preview hidden" id="recipientPreview"></div>
+    <input type="number" id="sendAmountInput" placeholder="Amount" min="0" step="0.01">
+    <button id="sendBtn" onclick="sendCoins(this)" disabled>Send</button>
+    <div id="sendMsg" class="msg"></div>
+    <div class="locked-box" style="margin-top:14px;">
+      ℹ️ This is an internal transfer within IK Coin. Withdrawing to an external
+      real crypto wallet will open once KYC is live — check the
+      <a href="kyc.html" style="color:#1d9bf0; font-weight:600;">KYC page</a> for updates.
+    </div>
+  </div>
+
+  <!-- QR SCANNER OVERLAY -->
+  <div class="qr-scan-overlay hidden" id="qrScanOverlay">
+    <div class="qr-scan-box">
+      <div class="qr-scan-header">
+        <span>Scan Wallet QR Code</span>
+        <span class="qr-scan-close" onclick="closeQrScanner()">✕</span>
+      </div>
+      <div id="qrReader"></div>
+      <div id="qrScanMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Recent Transactions</div>
+  <div id="txList"><div class="empty-note">Loading...</div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script type="module">
+import {
+  auth, db, doc, getDoc, collection, addDoc, query, where, orderBy, getDocs,
+  runTransaction, serverTimestamp, increment,
+  onAuthStateChanged,
+  usernameDocRef, userDocRef, generateTID
+} from './firebase-shared.js';
+
+let currentUid = '';
+let currentUsername = '';
+let currentWallet = '';
+let resolvedRecipient = null; // { uid, username, fullName }
+let recipientDebounceTimer = null;
+
+// ===== COUNTRY DIAL-CODE LOOKUP (best-effort — we only store phone, not a
+// separate country field, so we guess the country from the dial code) =====
+const COUNTRIES = [
+["Afghanistan","AF","+93"],["Albania","AL","+355"],["Algeria","DZ","+213"],["Andorra","AD","+376"],
+["Angola","AO","+244"],["Argentina","AR","+54"],["Armenia","AM","+374"],["Australia","AU","+61"],
+["Austria","AT","+43"],["Azerbaijan","AZ","+994"],["Bahamas","BS","+1"],["Bahrain","BH","+973"],
+["Bangladesh","BD","+880"],["Barbados","BB","+1"],["Belarus","BY","+375"],["Belgium","BE","+32"],
+["Belize","BZ","+501"],["Benin","BJ","+229"],["Bhutan","BT","+975"],["Bolivia","BO","+591"],
+["Bosnia and Herzegovina","BA","+387"],["Botswana","BW","+267"],["Brazil","BR","+55"],
+["Brunei","BN","+673"],["Bulgaria","BG","+359"],["Burkina Faso","BF","+226"],["Burundi","BI","+257"],
+["Cambodia","KH","+855"],["Cameroon","CM","+237"],["Canada","CA","+1"],["Cape Verde","CV","+238"],
+["Central African Republic","CF","+236"],["Chad","TD","+235"],["Chile","CL","+56"],["China","CN","+86"],
+["Colombia","CO","+57"],["Comoros","KM","+269"],["Congo","CG","+242"],["Costa Rica","CR","+506"],
+["Croatia","HR","+385"],["Cuba","CU","+53"],["Cyprus","CY","+357"],["Czech Republic","CZ","+420"],
+["Denmark","DK","+45"],["Djibouti","DJ","+253"],["Dominican Republic","DO","+1"],["Ecuador","EC","+593"],
+["Egypt","EG","+20"],["El Salvador","SV","+503"],["Estonia","EE","+372"],["Eswatini","SZ","+268"],
+["Ethiopia","ET","+251"],["Fiji","FJ","+679"],["Finland","FI","+358"],["France","FR","+33"],
+["Gabon","GA","+241"],["Gambia","GM","+220"],["Georgia","GE","+995"],["Germany","DE","+49"],
+["Ghana","GH","+233"],["Greece","GR","+30"],["Guatemala","GT","+502"],["Guinea","GN","+224"],
+["Guyana","GY","+592"],["Haiti","HT","+509"],["Honduras","HN","+504"],["Hong Kong","HK","+852"],
+["Hungary","HU","+36"],["Iceland","IS","+354"],["India","IN","+91"],["Indonesia","ID","+62"],
+["Iran","IR","+98"],["Iraq","IQ","+964"],["Ireland","IE","+353"],["Israel","IL","+972"],
+["Italy","IT","+39"],["Ivory Coast","CI","+225"],["Jamaica","JM","+1"],["Japan","JP","+81"],
+["Jordan","JO","+962"],["Kazakhstan","KZ","+7"],["Kenya","KE","+254"],["Kuwait","KW","+965"],
+["Kyrgyzstan","KG","+996"],["Laos","LA","+856"],["Latvia","LV","+371"],["Lebanon","LB","+961"],
+["Lesotho","LS","+266"],["Liberia","LR","+231"],["Libya","LY","+218"],["Liechtenstein","LI","+423"],
+["Lithuania","LT","+370"],["Luxembourg","LU","+352"],["Madagascar","MG","+261"],["Malawi","MW","+265"],
+["Malaysia","MY","+60"],["Maldives","MV","+960"],["Mali","ML","+223"],["Malta","MT","+356"],
+["Mauritania","MR","+222"],["Mauritius","MU","+230"],["Mexico","MX","+52"],["Moldova","MD","+373"],
+["Monaco","MC","+377"],["Mongolia","MN","+976"],["Montenegro","ME","+382"],["Morocco","MA","+212"],
+["Mozambique","MZ","+258"],["Myanmar","MM","+95"],["Namibia","NA","+264"],["Nepal","NP","+977"],
+["Netherlands","NL","+31"],["New Zealand","NZ","+64"],["Nicaragua","NI","+505"],["Niger","NE","+227"],
+["Nigeria","NG","+234"],["North Korea","KP","+850"],["North Macedonia","MK","+389"],["Norway","NO","+47"],
+["Oman","OM","+968"],["Pakistan","PK","+92"],["Palestine","PS","+970"],["Panama","PA","+507"],
+["Papua New Guinea","PG","+675"],["Paraguay","PY","+595"],["Peru","PE","+51"],["Philippines","PH","+63"],
+["Poland","PL","+48"],["Portugal","PT","+351"],["Qatar","QA","+974"],["Romania","RO","+40"],
+["Russia","RU","+7"],["Rwanda","RW","+250"],["Saudi Arabia","SA","+966"],["Senegal","SN","+221"],
+["Serbia","RS","+381"],["Seychelles","SC","+248"],["Sierra Leone","SL","+232"],["Singapore","SG","+65"],
+["Slovakia","SK","+421"],["Slovenia","SI","+386"],["Somalia","SO","+252"],["South Africa","ZA","+27"],
+["South Korea","KR","+82"],["South Sudan","SS","+211"],["Spain","ES","+34"],["Sri Lanka","LK","+94"],
+["Sudan","SD","+249"],["Suriname","SR","+597"],["Sweden","SE","+46"],["Switzerland","CH","+41"],
+["Syria","SY","+963"],["Taiwan","TW","+886"],["Tajikistan","TJ","+992"],["Tanzania","TZ","+255"],
+["Thailand","TH","+66"],["Togo","TG","+228"],["Trinidad and Tobago","TT","+1"],["Tunisia","TN","+216"],
+["Turkey","TR","+90"],["Turkmenistan","TM","+993"],["Uganda","UG","+256"],["Ukraine","UA","+380"],
+["United Arab Emirates","AE","+971"],["United Kingdom","GB","+44"],["United States","US","+1"],
+["Uruguay","UY","+598"],["Uzbekistan","UZ","+998"],["Vanuatu","VU","+678"],["Venezuela","VE","+58"],
+["Vietnam","VN","+84"],["Yemen","YE","+967"],["Zambia","ZM","+260"],["Zimbabwe","ZW","+263"]
+];
+
+const DIAL_TO_COUNTRY = { '+1': 'United States', '+7': 'Russia' };
+COUNTRIES.forEach(([name, iso, code]) => {
+  if (!DIAL_TO_COUNTRY[code]) DIAL_TO_COUNTRY[code] = name;
+});
+const SORTED_DIAL_CODES = Object.keys(DIAL_TO_COUNTRY).sort((a, b) => b.length - a.length);
+
+function guessCountryFromPhone(phone) {
+  if (!phone) return '';
+  for (const code of SORTED_DIAL_CODES) {
+    if (phone.startsWith(code)) return DIAL_TO_COUNTRY[code];
+  }
+  return '';
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  currentUid = user.uid;
+  const snap = await getDoc(userDocRef(user.uid));
+  if (!snap.exists()) {
+    window.location.href = 'index.html';
+    return;
+  }
+  const data = snap.data();
+  currentUsername = data.username;
+  currentWallet = data.walletAddress || '';
+
+  document.getElementById('usernameSub').textContent = '@' + currentUsername;
+  document.getElementById('balanceAmount').textContent = Number(data.walletBalance || 0).toFixed(2) + ' IK';
+  document.getElementById('miningAmount').textContent = Number(data.collectedCoins || 0).toFixed(2) + ' IKT';
+  document.getElementById('referralBonusAmount').textContent = Number(data.referralBonus || 0).toFixed(2) + ' IK';
+  document.getElementById('myWalletAddress').textContent = currentWallet;
+
+  if (currentWallet && window.QRCode) {
+    document.getElementById('qrCodeBox').innerHTML = '';
+    new QRCode(document.getElementById('qrCodeBox'), {
+      text: currentWallet,
+      width: 170,
+      height: 170,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+
+  loadTransactions();
+});
+
+window.onRecipientInput = function() {
+  const raw = document.getElementById('sendToInput').value.trim();
+  const msgEl = document.getElementById('recipientMsg');
+  const previewEl = document.getElementById('recipientPreview');
+  const sendBtn = document.getElementById('sendBtn');
+
+  resolvedRecipient = null;
+  sendBtn.disabled = true;
+  previewEl.classList.add('hidden');
+  previewEl.innerHTML = '';
+  clearTimeout(recipientDebounceTimer);
+
+  if (!raw) {
+    msgEl.textContent = '';
+    msgEl.className = 'msg';
+    return;
+  }
+
+  msgEl.textContent = 'Looking up recipient...';
+  msgEl.className = 'msg';
+
+  recipientDebounceTimer = setTimeout(async () => {
+    try {
+      let uid = null;
+      let userData = null;
+
+      if (raw.startsWith('IKw')) {
+        // Looks like a wallet address
+        const snap = await getDocs(query(collection(db, 'users'), where('walletAddress', '==', raw)));
+        if (!snap.empty) { uid = snap.docs[0].id; userData = snap.docs[0].data(); }
+      } else if (raw.includes('@')) {
+        // Looks like an email
+        const snap = await getDocs(query(collection(db, 'users'), where('email', '==', raw)));
+        if (!snap.empty) { uid = snap.docs[0].id; userData = snap.docs[0].data(); }
+      } else {
+        // Treat as a username
+        const unameSnap = await getDoc(usernameDocRef(raw.toLowerCase()));
+        if (unameSnap.exists()) {
+          uid = unameSnap.data().uid;
+          const userSnap = await getDoc(userDocRef(uid));
+          if (userSnap.exists()) userData = userSnap.data();
+        }
+      }
+
+      if (!uid || !userData) {
+        msgEl.textContent = 'No user found with that username, email, or wallet address';
+        msgEl.className = 'msg error';
+        return;
+      }
+
+      if (uid === currentUid) {
+        msgEl.textContent = "You can't send coins to yourself";
+        msgEl.className = 'msg error';
+        return;
+      }
+
+      const country = guessCountryFromPhone(userData.phone || '');
+      resolvedRecipient = { uid, username: userData.username, fullName: userData.fullName || '' };
+
+      previewEl.innerHTML =
+        '<div class="recipient-name">' + escapeHtml(userData.fullName || '-') +
+        (userData.blueTick ? ' <span class="blue-check">✔</span>' : '') + '</div>' +
+        '<div class="recipient-meta">@' + escapeHtml(userData.username || '') +
+        (country ? ' · ' + escapeHtml(country) : '') + '</div>';
+      previewEl.classList.remove('hidden');
+
+      msgEl.textContent = '';
+      msgEl.className = 'msg';
+      sendBtn.disabled = false;
+    } catch (e) {
+      console.error(e);
+      msgEl.textContent = 'Lookup failed, please try again';
+      msgEl.className = 'msg error';
+    }
+  }, 500);
+};
+
+let html5QrScanner = null;
+
+window.handleWalletBack = function() {
+  const onSendTab = document.getElementById('sendPanel').classList.contains('active');
+  if (onSendTab) {
+    switchWalletTab('receive');
+  } else {
+    window.location.href = 'index.html';
+  }
+};
+
+window.openQrScanner = function() {
+  const overlay = document.getElementById('qrScanOverlay');
+  const msgEl = document.getElementById('qrScanMsg');
+  overlay.classList.remove('hidden');
+  msgEl.textContent = '';
+  msgEl.className = 'msg';
+
+  if (!window.Html5Qrcode) {
+    msgEl.textContent = 'Scanner failed to load, please try again';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  html5QrScanner = new Html5Qrcode('qrReader');
+  html5QrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 220 },
+    (decodedText) => {
+      document.getElementById('sendToInput').value = decodedText;
+      onRecipientInput();
+      closeQrScanner();
+    },
+    () => { /* ignore per-frame scan misses */ }
+  ).catch((err) => {
+    console.error(err);
+    msgEl.textContent = 'Could not access camera — please allow camera permission';
+    msgEl.className = 'msg error';
+  });
+};
+
+window.closeQrScanner = function() {
+  document.getElementById('qrScanOverlay').classList.add('hidden');
+  if (html5QrScanner) {
+    html5QrScanner.stop().then(() => html5QrScanner.clear()).catch(() => {});
+    html5QrScanner = null;
+  }
+};
+
+window.switchWalletTab = function(tab) {
+  document.getElementById('receiveTabBtn').classList.toggle('active', tab === 'receive');
+  document.getElementById('sendTabBtn').classList.toggle('active', tab === 'send');
+  document.getElementById('receivePanel').classList.toggle('active', tab === 'receive');
+  document.getElementById('sendPanel').classList.toggle('active', tab === 'send');
+  if (tab !== 'send') {
+    closeQrScanner();
+  }
+};
+
+window.copyWalletAddress = function() {
+  navigator.clipboard.writeText(currentWallet).then(() => {
+    const msgEl = document.getElementById('copyMsg');
+    msgEl.textContent = 'Address copied!';
+    msgEl.className = 'msg success';
+    setTimeout(() => { msgEl.textContent = ''; }, 2000);
+  });
+};
+
+function setBtnLoading(btn, text) {
+  if (!btn) return;
+  if (btn.dataset.originalText === undefined) btn.dataset.originalText = btn.textContent;
+  btn.textContent = text || 'Please wait...';
+  btn.disabled = true;
+}
+function resetBtn(btn) {
+  if (!btn) return;
+  if (btn.dataset.originalText !== undefined) btn.textContent = btn.dataset.originalText;
+  btn.disabled = false;
+}
+
+window.sendCoins = async function(btn) {
+  const amount = parseFloat(document.getElementById('sendAmountInput').value);
+  const msgEl = document.getElementById('sendMsg');
+
+  if (!resolvedRecipient) {
+    msgEl.textContent = 'Please enter a valid recipient first';
+    msgEl.className = 'msg error';
+    return;
+  }
+  if (!amount || amount <= 0) {
+    msgEl.textContent = 'Enter a valid amount';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  setBtnLoading(btn, 'Sending...');
+
+  try {
+    const toUid = resolvedRecipient.uid;
+    const toUsername = resolvedRecipient.username;
+    const tid = generateTID();
+
+    await runTransaction(db, async (tx) => {
+      const fromRef = userDocRef(currentUid);
+      const toRef = userDocRef(toUid);
+      const fromSnap = await tx.get(fromRef);
+      const fromData = fromSnap.data();
+      const balance = Number(fromData.walletBalance) || 0;
+
+      if (balance < amount) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+
+      tx.update(fromRef, { walletBalance: increment(-amount) });
+      tx.update(toRef, { walletBalance: increment(amount) });
+    });
+
+    await addDoc(collection(db, 'transactions'), {
+      tid,
+      type: 'transfer',
+      status: 'completed',
+      amount,
+      fromUid: currentUid,
+      fromUsername: currentUsername,
+      toUid,
+      toUsername,
+      timestamp: serverTimestamp()
+    });
+
+    msgEl.textContent = 'Sent! (TID: ' + tid + ')';
+    msgEl.className = 'msg success';
+    document.getElementById('sendToInput').value = '';
+    document.getElementById('sendAmountInput').value = '';
+    document.getElementById('recipientPreview').classList.add('hidden');
+    document.getElementById('recipientPreview').innerHTML = '';
+    document.getElementById('recipientMsg').textContent = '';
+    document.getElementById('sendBtn').disabled = true;
+    resolvedRecipient = null;
+
+    const freshSnap = await getDoc(userDocRef(currentUid));
+    document.getElementById('balanceAmount').textContent = Number(freshSnap.data().walletBalance || 0).toFixed(2) + ' IKT';
+    loadTransactions();
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = (e.message === 'INSUFFICIENT_BALANCE')
+      ? 'Not enough balance for this transfer' : 'Transfer failed, please try again';
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+};
+
+async function loadTransactions() {
+  const txListEl = document.getElementById('txList');
+  txListEl.innerHTML = '<div class="empty-note">Loading...</div>';
+
+  try {
+    const sentQuery = query(collection(db, 'transactions'), where('uid', '==', currentUid), orderBy('timestamp', 'desc'));
+    const transferOutQuery = query(collection(db, 'transactions'), where('fromUid', '==', currentUid), orderBy('timestamp', 'desc'));
+    const transferInQuery = query(collection(db, 'transactions'), where('toUid', '==', currentUid), orderBy('timestamp', 'desc'));
+
+    const [minedSnap, outSnap, inSnap] = await Promise.all([
+      getDocs(sentQuery), getDocs(transferOutQuery), getDocs(transferInQuery)
+    ]);
+
+    const rows = [];
+    minedSnap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+    outSnap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+    inSnap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+
+    // de-dupe (a doc could theoretically match more than one query) and sort newest first
+    const seen = new Set();
+    const unique = rows.filter(r => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    }).sort((a, b) => {
+      const at = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+      const bt = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+      return bt - at;
+    });
+
+    if (unique.length === 0) {
+      txListEl.innerHTML = '<div class="empty-note">No transactions yet</div>';
+      return;
+    }
+
+    txListEl.innerHTML = '';
+    unique.forEach(tx => {
+      const isOutgoing = tx.fromUid === currentUid;
+      const isMined = tx.type === 'mined';
+      const when = tx.timestamp && tx.timestamp.toDate ? tx.timestamp.toDate().toLocaleString() : '';
+
+      let label, amountClass, amountPrefix;
+      if (isMined) {
+        label = 'Mined';
+        amountClass = 'in';
+        amountPrefix = '+';
+      } else if (tx.type === 'referral_bonus') {
+        label = 'Referral Bonus (@' + (tx.fromUsername || '?') + ' joined)';
+        amountClass = 'in';
+        amountPrefix = '+';
+      } else if (isOutgoing) {
+        label = 'Sent to @' + (tx.toUsername || '?');
+        amountClass = 'out';
+        amountPrefix = '-';
+      } else {
+        label = 'Received from @' + (tx.fromUsername || (tx.type === 'admin_credit' ? 'Admin' : '?'));
+        amountClass = 'in';
+        amountPrefix = '+';
+      }
+
+      const row = document.createElement('div');
+      row.className = 'tx-item';
+      row.innerHTML = `
+        <div class="tx-left">
+          <div class="tx-tid">${label}</div>
+          <div class="tx-meta">${escapeHtml(tx.tid || tx.id)} · ${when}</div>
+        </div>
+        <div class="tx-amount ${amountClass}">${amountPrefix}${Number(tx.amount || 0).toFixed(2)} ${tx.type === 'referral_bonus' ? 'IK' : 'IKT'}</div>
+      `;
+      txListEl.appendChild(row);
+    });
+  } catch (e) {
+    console.error(e);
+    txListEl.innerHTML = '<div class="empty-note">Could not load transactions</div>';
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+</script>
+
+</body>
+</html>

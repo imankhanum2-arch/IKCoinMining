@@ -10,7 +10,7 @@ import {
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, addDoc, runTransaction, serverTimestamp, Timestamp,
-  increment, query, where, orderBy, limit, getDocs
+  increment, query, where, orderBy, limit, getDocs, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -32,7 +32,7 @@ export {
   onAuthStateChanged, signOut,
   doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, addDoc, runTransaction, serverTimestamp, Timestamp, increment,
-  query, where, orderBy, limit, getDocs
+  query, where, orderBy, limit, getDocs, onSnapshot
 };
 
 // ===== EMAIL RELAY (Google Apps Script - sends OTP emails only) =====
