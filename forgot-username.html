@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Forgot Username</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .logo-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800;
+    margin: 0 auto 16px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #bbb; font-size: 13px; margin-bottom: 24px; }
+  input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  input::placeholder { color: #999; }
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #a98a54, #a8543a);
+  }
+  .link-btn {
+    background: none;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px;
+    margin-top: 4px;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .msg.error { color: #ff6b6b; }
+  .msg.success { color: #6bff9e; }
+  .hidden { display: none; }
+  .field-hint { font-size: 11px; color: #888; margin: -8px 0 12px; text-align: left; }
+
+  .result-box {
+    background: rgba(107,255,158,0.1);
+    border: 1px solid #6bff9e;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .result-label { font-size: 12px; color: #bbb; margin-bottom: 6px; }
+  .result-username { font-size: 24px; font-weight: 800; color: #6bff9e; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="logo-circle">IK</div>
+  <h1>Forgot Username</h1>
+  <p class="subtitle">Enter your registered email &amp; full name</p>
+
+  <!-- LOOKUP FORM -->
+  <div id="lookupForm">
+    <input type="email" id="lookupEmailInput" placeholder="Email address">
+    <input type="text" id="lookupNameInput" placeholder="Full Name">
+    <div class="field-hint">Enter the exact name you used when you signed up.</div>
+
+    <button onclick="findUsername(this)">Find My Username</button>
+    <div class="link-btn" onclick="window.location.href='index.html'">Back to Login</div>
+    <div id="lookupMsg" class="msg"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="resultView" class="hidden">
+    <div class="result-box">
+      <div class="result-label">Your username is</div>
+      <div class="result-username" id="foundUsername"></div>
+    </div>
+    <button onclick="window.location.href='index.html'">Go to Login</button>
+    <div class="link-btn" onclick="showLookupAgain()">Search again</div>
+  </div>
+
+</div>
+
+<script type="module">
+import { db, doc, getDoc } from './firebase-shared.js';
+
+function setBtnLoading(btn, loadingText) {
+  if (!btn) return;
+  if (btn.dataset.originalText === undefined) {
+    btn.dataset.originalText = btn.textContent;
+  }
+  btn.textContent = loadingText || 'Please wait...';
+  btn.disabled = true;
+}
+
+function resetBtn(btn) {
+  if (!btn) return;
+  if (btn.dataset.originalText !== undefined) {
+    btn.textContent = btn.dataset.originalText;
+  }
+  btn.disabled = false;
+}
+
+function normalizeName(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+async function findUsername(btn) {
+  const email = document.getElementById('lookupEmailInput').value.trim().toLowerCase();
+  const fullName = document.getElementById('lookupNameInput').value;
+  const msgEl = document.getElementById('lookupMsg');
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    msgEl.textContent = 'Please enter a correct email';
+    msgEl.className = 'msg error';
+    return;
+  }
+  if (!fullName.trim()) {
+    msgEl.textContent = 'Please enter your full name';
+    msgEl.className = 'msg error';
+    return;
+  }
+
+  msgEl.textContent = 'Searching...';
+  msgEl.className = 'msg';
+  setBtnLoading(btn, 'Searching...');
+
+  try {
+    const snap = await getDoc(doc(db, 'emailIndex', email));
+    console.log('[forgot-username] looked up email:', email);
+    console.log('[forgot-username] name typed (expected):', normalizeName(fullName));
+    console.log('[forgot-username] doc exists:', snap.exists(), ' stored data:', snap.exists() ? snap.data() : null);
+
+    if (!snap.exists() || !snap.data().fullName || normalizeName(snap.data().fullName) !== normalizeName(fullName)) {
+      msgEl.textContent = 'No account matches this email & name';
+      msgEl.className = 'msg error';
+      resetBtn(btn);
+      return;
+    }
+    document.getElementById('foundUsername').textContent = '@' + snap.data().username;
+    document.getElementById('lookupForm').classList.add('hidden');
+    document.getElementById('resultView').classList.remove('hidden');
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'Connection error, please try again';
+    msgEl.className = 'msg error';
+  } finally {
+    resetBtn(btn);
+  }
+}
+
+function showLookupAgain() {
+  document.getElementById('lookupEmailInput').value = '';
+  document.getElementById('lookupNameInput').value = '';
+  document.getElementById('lookupMsg').textContent = '';
+  document.getElementById('resultView').classList.add('hidden');
+  document.getElementById('lookupForm').classList.remove('hidden');
+}
+
+window.findUsername = findUsername;
+window.showLookupAgain = showLookupAgain;
+</script>
+
+</body>
+</html>

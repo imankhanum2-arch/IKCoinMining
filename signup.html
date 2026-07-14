@@ -145,6 +145,24 @@
   .msg.success { color: #6bff9e; }
   .hidden { display: none; }
   .field-hint { font-size: 11px; color: #888; margin: -8px 0 12px; text-align: left; }
+
+  .password-field { position: relative; margin-bottom: 14px; }
+  .password-field input { padding-right: 46px; margin-bottom: 0; }
+  .toggle-eye {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    width: auto;
+    padding: 4px;
+    cursor: pointer;
+    color: #999;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .toggle-eye:hover { color: #f7b733; }
   .otp-counter { font-size: 12px; color: #888; margin: -8px 0 14px; text-align: right; }
   .back-link { display: block; margin-top: 16px; font-size: 13px; color: #bbb; cursor: pointer; }
   .back-link:hover { color: #f7b733; }
@@ -157,6 +175,18 @@
   <div class="logo-circle">IK</div>
   <h1>Create New Account</h1>
   <p class="subtitle">Join IK Coin Mining</p>
+
+  <!-- Shown instead of silently redirecting, when someone opens a referral
+       link on a device/browser that's already logged into an account. -->
+  <div id="alreadyLoggedInStep" class="hidden">
+    <p style="font-size:14px; color:#ddd; line-height:1.7; margin-bottom:20px;">
+      This device is already logged in with another account, so a new account
+      wasn't created. To sign up with this referral link, please log out first.
+    </p>
+    <button onclick="logoutAndRetry(this)">Log Out &amp; Create New Account</button>
+    <button class="link-btn" style="width:100%; background:none; margin-top:4px;" onclick="window.location.href='index.html'">Go to Dashboard instead</button>
+    <div id="alreadyLoggedInMsg" class="msg"></div>
+  </div>
 
   <!-- STEP A - Email OTP -->
   <div id="emailStep">
@@ -211,7 +241,17 @@
     <div class="field-hint" id="phoneHint">Phone number is optional, email is already verified.</div>
 
     <input type="text" id="newUsername" placeholder="Username" oninput="this.value = this.value.toLowerCase()">
-    <input type="password" id="newPassword" placeholder="Password (Minimum 6 characters)">
+
+    <div class="password-field">
+      <input type="password" id="newPassword" placeholder="Password (Minimum 6 characters)">
+      <button type="button" class="toggle-eye" onclick="togglePasswordVisibility('newPassword', this)">👁</button>
+    </div>
+
+    <div class="password-field">
+      <input type="password" id="newConfirmPassword" placeholder="Confirm Password">
+      <button type="button" class="toggle-eye" onclick="togglePasswordVisibility('newConfirmPassword', this)">👁</button>
+    </div>
+
     <button onclick="setCredentials(this)">Create Account</button>
     <div id="credMsg" class="msg"></div>
   </div>
@@ -221,7 +261,7 @@
 <script type="module">
 import {
   db, auth, doc, getDoc, setDoc, deleteDoc, collection, addDoc, runTransaction, serverTimestamp, increment,
-  createUserWithEmailAndPassword, onAuthStateChanged,
+  createUserWithEmailAndPassword, onAuthStateChanged, signOut,
   sendOtpEmail, generateOtp, generateWalletAddress,
   usernameDocRef, userDocRef, statsDocRef, BLUE_TICK_LIMIT, REFERRAL_BONUS, generateTID
 } from './firebase-shared.js';
@@ -234,9 +274,29 @@ import {
 onAuthStateChanged(auth, (user) => {
   const hasRefParam = new URLSearchParams(window.location.search).has('ref');
   if (user && hasRefParam) {
-    window.location.replace('index.html');
+    // Don't silently bounce away — tell them why nothing happened and let
+    // them choose to log out and continue, or go straight to their dashboard.
+    document.getElementById('emailStep').classList.add('hidden');
+    document.getElementById('alreadyLoggedInStep').classList.remove('hidden');
   }
 });
+
+async function logoutAndRetry(btn) {
+  const msgEl = document.getElementById('alreadyLoggedInMsg');
+  setBtnLoading(btn, 'Logging out...');
+  try {
+    await signOut(auth);
+    // Reload so onAuthStateChanged re-runs with no user, and the normal
+    // referral signup flow (with the ref code prefilled) proceeds.
+    window.location.reload();
+  } catch (e) {
+    console.error(e);
+    msgEl.textContent = 'Could not log out, please try again';
+    msgEl.className = 'msg error';
+    resetBtn(btn);
+  }
+}
+window.logoutAndRetry = logoutAndRetry;
 
 // ===== COUNTRY LIST =====
 // 4th value = standard number of digits to enter after the country code
@@ -384,6 +444,14 @@ function resetBtn(btn) {
   }
   btn.disabled = false;
 }
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
+}
+window.togglePasswordVisibility = togglePasswordVisibility;
 
 async function requestOtp(btn) {
   const email = document.getElementById('emailInput').value.trim().toLowerCase();
@@ -636,6 +704,7 @@ async function setCredentials(btn) {
   const fullName = document.getElementById('newFullName').value.trim();
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('newConfirmPassword').value;
   const msgEl = document.getElementById('credMsg');
 
   let localNumber = document.getElementById('phoneInput').value.trim();
@@ -657,6 +726,11 @@ async function setCredentials(btn) {
   }
   if (password.length < 6) {
     msgEl.textContent = 'Password must be at least 6 characters';
+    msgEl.className = 'msg error';
+    return;
+  }
+  if (password !== confirmPassword) {
+    msgEl.textContent = 'Passwords do not match';
     msgEl.className = 'msg error';
     return;
   }
@@ -730,7 +804,10 @@ async function setCredentials(btn) {
         createdAt: serverTimestamp()
       }),
       setDoc(usernameDocRef(usernameLower), { uid, email: pendingEmail, fullName }),
-      setDoc(doc(db, 'signupOtps', pendingEmail), { registered: true }, { merge: true })
+      setDoc(doc(db, 'signupOtps', pendingEmail), { registered: true }, { merge: true }),
+      // Reverse index keyed by email, used by forgot-username.html so someone
+      // who forgot their username can look it up with email + full name.
+      setDoc(doc(db, 'emailIndex', pendingEmail), { username: usernameLower, fullName, phone: fullPhone || '' })
     ];
     if (referrerUid) {
       writes.push(setDoc(userDocRef(referrerUid), {

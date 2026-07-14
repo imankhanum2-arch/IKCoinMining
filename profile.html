@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IK Coin - Profile</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  .card {
+    position: relative;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .avatar-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800;
+    margin: 0 auto 14px;
+    box-shadow: 0 0 30px rgba(252,74,26,0.5);
+  }
+  .user-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .blue-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #1d9bf0;
+    color: #fff;
+    font-size: 11px;
+  }
+  .username-sub { color: #f7b733; font-size: 14px; margin-bottom: 24px; }
+
+  .detail-list {
+    text-align: left;
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 6px 16px;
+    margin-bottom: 18px;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    gap: 10px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: #aaa; font-size: 13px; white-space: nowrap; }
+  .detail-value {
+    font-size: 13.5px;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+  .detail-value.wallet {
+    font-family: monospace;
+    font-size: 12px;
+    color: #f7b733;
+  }
+  .badge-yes { color: #6bff9e; }
+  .badge-no { color: #999; }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    margin-bottom: 10px;
+  }
+  button:active { transform: scale(0.97); }
+  .link-btn {
+    background: none;
+    color: #f7b733;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .msg.error { color: #ff6b6b; }
+  .hidden { display: none; }
+  .loading-text { padding: 40px 0; color: #f7b733; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div id="loadingState" class="loading-text">Loading profile...</div>
+
+  <div id="profileView" class="hidden">
+    <div class="avatar-circle" id="avatarInitial">?</div>
+    <div class="user-name-row">
+      <span id="profileFullName"></span>
+      <span id="profileBlueTick" class="blue-check hidden" title="Verified">✔</span>
+    </div>
+    <div class="username-sub" id="profileUsername"></div>
+
+    <div class="detail-list">
+      <div class="detail-row">
+        <span class="detail-label">Email</span>
+        <span class="detail-value" id="dEmail">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Phone</span>
+        <span class="detail-value" id="dPhone">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Wallet Address</span>
+        <span class="detail-value wallet" id="dWallet">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Collected Coins</span>
+        <span class="detail-value" id="dCoins">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Wallet Balance</span>
+        <span class="detail-value" id="dBalance">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Referrals</span>
+        <span class="detail-value" id="dReferrals">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Referral Bonus (locked)</span>
+        <span class="detail-value" id="dReferralBonus">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Referred By</span>
+        <span class="detail-value" id="dReferredBy">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Sessions Completed</span>
+        <span class="detail-value" id="dSessionsCompleted">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Sessions Missed</span>
+        <span class="detail-value" id="dSessionsMissed">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Verified (Blue Tick)</span>
+        <span class="detail-value" id="dBlueTick">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Joined On</span>
+        <span class="detail-value" id="dCreatedAt">-</span>
+      </div>
+    </div>
+
+    <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    <div class="link-btn" onclick="doLogout()">Logout</div>
+    <div id="profileMsg" class="msg"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { db, auth, doc, getDoc, onAuthStateChanged, signOut, userDocRef } from './firebase-shared.js';
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // Not logged in — send back to login screen.
+    window.location.href = 'index.html';
+    return;
+  }
+  await loadProfile(user.uid);
+});
+
+async function loadProfile(uid) {
+  const msgEl = document.getElementById('profileMsg');
+  try {
+    const snap = await getDoc(userDocRef(uid));
+    if (!snap.exists()) {
+      msgEl.textContent = 'Could not find your profile data';
+      msgEl.className = 'msg error';
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('profileView').classList.remove('hidden');
+      return;
+    }
+    const data = snap.data();
+
+    document.getElementById('avatarInitial').textContent =
+      (data.fullName || data.username || '?').trim().charAt(0).toUpperCase();
+    document.getElementById('profileFullName').textContent = data.fullName || '-';
+    document.getElementById('profileUsername').textContent = '@' + (data.username || '-');
+    document.getElementById('profileBlueTick').classList.toggle('hidden', !data.blueTick);
+
+    document.getElementById('dEmail').textContent = data.email || '-';
+    document.getElementById('dPhone').textContent = data.phone || 'Not provided';
+    document.getElementById('dWallet').textContent = data.walletAddress || '-';
+    document.getElementById('dCoins').textContent = Number(data.collectedCoins || 0).toFixed(2) + ' IKT';
+    document.getElementById('dBalance').textContent = Number(data.walletBalance || 0).toFixed(2) + ' IKT';
+    document.getElementById('dReferrals').textContent = data.referrals || 0;
+    document.getElementById('dReferralBonus').textContent = Number(data.referralBonus || 0).toFixed(2) + ' IKT';
+    document.getElementById('dReferredBy').textContent = data.referredBy ? '@' + data.referredBy : 'None';
+    document.getElementById('dSessionsCompleted').textContent = data.sessionsCompleted || 0;
+    document.getElementById('dSessionsMissed').textContent = data.sessionsMissed || 0;
+
+    const blueTickEl = document.getElementById('dBlueTick');
+    blueTickEl.textContent = data.blueTick ? 'Yes' : 'No';
+    blueTickEl.className = 'detail-value ' + (data.blueTick ? 'badge-yes' : 'badge-no');
+
+    if (data.createdAt) {
+      const ms = data.createdAt.toMillis ? data.createdAt.toMillis() : new Date(data.createdAt).getTime();
+      document.getElementById('dCreatedAt').textContent = new Date(ms).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+    } else {
+      document.getElementById('dCreatedAt').textContent = '-';
+    }
+
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('profileView').classList.remove('hidden');
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loadingState').textContent = 'Failed to load profile, please refresh.';
+  }
+}
+
+async function doLogout() {
+  await signOut(auth);
+  window.location.href = 'index.html';
+}
+
+window.doLogout = doLogout;
+</script>
+
+</body>
+</html>

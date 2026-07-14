@@ -420,9 +420,6 @@
     <a href="#" class="menu-item active" onclick="goDashboard(); return false;">
       <span class="menu-icon">🏠</span> Dashboard
     </a>
-    <a href="profile.html" class="menu-item">
-      <span class="menu-icon">👤</span> Profile
-    </a>
     <a href="Wallet.html" class="menu-item">
       <span class="menu-icon">🪪</span> Wallet
     </a>
@@ -432,11 +429,12 @@
     <a href="kyc.html" class="menu-item">
       <span class="menu-icon">🪪</span> KYC
     </a>
+
+    <a href="tokenomics.html" class="menu-item">
+      <span class="menu-icon">⛏️</span> Tokenomics
+    </a>
     <a href="whitepaper.html" class="menu-item">
       <span class="menu-icon">📄</span> White Paper
-    </a>
-    <a href="tokenomics.html" class="menu-item">
-      <span class="menu-icon">⛏️</span> Mining Details
     </a>
     <a href="download.html" class="menu-item">
       <span class="menu-icon">⬇️</span> Download App
@@ -666,6 +664,7 @@ function applyLocalCooldownGuess() {
 }
 
 window.onload = function() {
+  renderCountryList('');
   checkDeviceClock();
 };
 
