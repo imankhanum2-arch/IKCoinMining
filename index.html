@@ -53,7 +53,7 @@
       border-radius: 0;
       border: none;
       box-shadow: none;
-      padding: 34px 20px calc(96px + env(safe-area-inset-bottom));
+      padding: 44px 20px calc(96px + env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -219,6 +219,13 @@
   .apk-sub { font-size: 11px; color: #0a2b1a; opacity: 0.75; }
 
   .coin-display { font-size: 40px; font-weight: 800; margin: 10px 0 4px; }
+  .dash-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
   .user-header {
     display: flex;
     align-items: center;
@@ -289,7 +296,7 @@
   /* ===== TOP BAR: project name (left) + hamburger (right) ===== */
   .top-bar {
     position: absolute;
-    top: 14px;
+    top: 22px;
     left: 18px;
     right: 18px;
     display: flex;
@@ -476,28 +483,20 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 2px solid rgba(247,183,51,0.55);
+    border: 2px solid rgba(125,211,252,0.8);
     opacity: 0;
     pointer-events: none;
   }
-  .mine-circle-wrap.mining .ripple {
-    animation: rippleWave 2.2s ease-out infinite;
+  /* One-shot water-ripple: plays for ~0.5s only when the logo is tapped,
+     then stops completely (no looping animation during the mining session). */
+  .mine-circle-wrap.rippling .ripple {
+    animation: waterRipple 0.5s ease-out forwards;
   }
-  .mine-circle-wrap.mining .ripple.ripple2 {
-    animation-delay: 1.1s;
-  }
-  @keyframes rippleWave {
-    0%   { transform: scale(1); opacity: 0.65; }
-    100% { transform: scale(1.7); opacity: 0; }
-  }
-  .mine-circle.mining {
-    animation: minePulse 1.8s ease-in-out infinite;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-  @keyframes minePulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(252,74,26,0.45); }
-    50%      { transform: scale(1.06); box-shadow: 0 0 46px rgba(252,74,26,0.7); }
+  .mine-circle-wrap.rippling .ripple.ripple2 { animation-delay: 0.08s; }
+  .mine-circle-wrap.rippling .ripple.ripple3 { animation-delay: 0.16s; }
+  @keyframes waterRipple {
+    0%   { transform: scale(0.9); opacity: 0.85; border-color: rgba(186,230,253,0.95); }
+    100% { transform: scale(1.9); opacity: 0; border-color: rgba(125,211,252,0); }
   }
   .mine-circle {
     width: 140px; height: 140px;
@@ -516,6 +515,7 @@
     font-size: 22px; font-weight: 800; color: #2b1200; line-height: 1.25;
   }
   .mine-circle .mine-circle-text small { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; }
+  /* Grey / inactive look while a 24h mining session is running */
   .mine-circle.disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -668,6 +668,7 @@
 
   <!-- DASHBOARD -->
   <div id="dashboard" class="hidden">
+    <div class="dash-title">IK Coin Mining</div>
     <div class="coin-display" id="coinAmount">0</div>
     <div class="coin-label">IKT</div>
 
@@ -684,6 +685,7 @@
     <div class="mine-circle-wrap" id="mineCircleWrap">
       <div class="ripple"></div>
       <div class="ripple ripple2"></div>
+      <div class="ripple ripple3"></div>
       <button class="mine-circle disabled" id="mineCircleBtn" onclick="triggerMine('circle')" aria-label="Start mining">
         <span class="mine-circle-text">IK<br><small>TOKEN</small></span>
       </button>
@@ -1002,7 +1004,6 @@ function showDashboard() {
   document.getElementById('entryStep').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('menuBtn').classList.remove('hidden');
-  document.getElementById('brandTitle').classList.remove('hidden');
   document.getElementById('apkDownloadBtn').classList.add('hidden');
   document.getElementById('brandHeader').classList.add('hidden');
   document.getElementById('bottomNav').classList.remove('hidden');
@@ -1080,8 +1081,7 @@ async function refreshStatus() {
     } else {
       document.getElementById('mineBtn').disabled = false;
       document.getElementById('timerDisplay').classList.add('hidden');
-      document.getElementById('mineCircleBtn').classList.remove('disabled', 'mining');
-      document.getElementById('mineCircleWrap').classList.remove('mining');
+      document.getElementById('mineCircleBtn').classList.remove('disabled');
       document.getElementById('mineStatusLine').classList.remove('disabled');
       document.getElementById('mineStatusText').textContent = 'MINING STANDBY • CLICK HERE TO START';
       document.getElementById('liveEarningValue').textContent = '0.000000';
@@ -1180,15 +1180,22 @@ async function mine() {
 
 // Clicking the coin logo or the status line underneath it both start a
 // mining session, same as the big button — with a quick "buzz" shake on
-// the logo itself for satisfying tactile feedback.
+// the logo itself, plus a brief 0.5s water-ripple burst for feedback.
 function triggerMine(source) {
   const mineBtn = document.getElementById('mineBtn');
   if (mineBtn.disabled) return;
 
   const circle = document.getElementById('mineCircleBtn');
+  const wrap = document.getElementById('mineCircleWrap');
+
   circle.classList.remove('buzz');
   void circle.offsetWidth; // restart the animation even on rapid re-clicks
   circle.classList.add('buzz');
+
+  wrap.classList.remove('rippling');
+  void wrap.offsetWidth;
+  wrap.classList.add('rippling');
+  setTimeout(() => wrap.classList.remove('rippling'), 500);
 
   mine();
 }
@@ -1215,9 +1222,7 @@ function startCooldown(remainingMs) {
   const liveVal = document.getElementById('liveEarningValue');
 
   btn.disabled = true;
-  circle.classList.remove('disabled');
-  circle.classList.add('mining');
-  circleWrap.classList.add('mining');
+  circle.classList.add('disabled');
   statusLine.classList.add('disabled');
   timerEl.classList.remove('hidden');
 
@@ -1228,8 +1233,7 @@ function startCooldown(remainingMs) {
     if (remaining <= 0) {
       clearInterval(countdownInterval);
       btn.disabled = false;
-      circle.classList.remove('mining');
-      circleWrap.classList.remove('mining');
+      circle.classList.remove('disabled');
       statusLine.classList.remove('disabled');
       timerEl.classList.add('hidden');
       statusText.textContent = 'MINING STANDBY • CLICK HERE TO START';
