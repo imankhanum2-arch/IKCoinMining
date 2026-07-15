@@ -220,9 +220,9 @@
 
   .coin-display { font-size: 40px; font-weight: 800; margin: 10px 0 4px; }
   .dash-title {
-    font-size: 20px;
+    font-size: 40px;
     font-weight: 800;
-    color: #fff;
+    color: #f7b733;
     letter-spacing: 0.02em;
     margin-bottom: 4px;
   }
@@ -253,7 +253,6 @@
     font-size: 13px; color: #ddd; margin-bottom: 18px;
   }
   .mine-btn { font-size: 18px; padding: 18px; }
-  .timer { font-size: 14px; color: #f7b733; margin-top: 10px; }
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     background: rgba(29,155,240,0.15); color: #1d9bf0;
@@ -442,8 +441,7 @@
     border-radius: 6px;
   }
   .logout-menu-item {
-    margin-top: auto;
-    margin-bottom: 4px;
+    margin-top: 6px;
     border-top: 1px solid rgba(255,255,255,0.1);
     color: #ff8a8a;
   }
@@ -536,18 +534,6 @@
     90%  { transform: translate(-1px,0) rotate(-1deg); }
     100% { transform: translate(0,0) rotate(0deg); }
   }
-
-  .mine-status-line {
-    margin-top: 12px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #f7b733;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    letter-spacing: 0.01em;
-  }
-  .mine-status-line .bolt { font-size: 14px; }
-  .mine-status-line.disabled { color: #888; cursor: not-allowed; }
 
   /* ===== BOTTOM NAV (Wallet / Profile / Tokenomics) ===== */
   .bottom-nav {
@@ -689,13 +675,9 @@
       <button class="mine-circle disabled" id="mineCircleBtn" onclick="triggerMine('circle')" aria-label="Start mining">
         <span class="mine-circle-text">IK<br><small>TOKEN</small></span>
       </button>
-      <div class="mine-status-line disabled" id="mineStatusLine" onclick="triggerMine('status')">
-        <span class="bolt">⚡</span><span id="mineStatusText">MINING STANDBY • CLICK HERE TO START</span>
-      </div>
     </div>
 
-    <button class="mine-btn" id="mineBtn" onclick="mine()" disabled>⛏️ Mine</button>
-    <div class="timer hidden" id="timerDisplay"></div>
+    <button class="mine-btn" id="mineBtn" onclick="mine()" disabled>⛏️ Start Mining</button>
 
 
     <div class="referral-box">
@@ -1079,11 +1061,11 @@ async function refreshStatus() {
       startCooldown(effectiveRemaining);
       setLocalCooldownFromRemaining(currentUsername, effectiveRemaining);
     } else {
-      document.getElementById('mineBtn').disabled = false;
-      document.getElementById('timerDisplay').classList.add('hidden');
+      const mineBtnEl = document.getElementById('mineBtn');
+      mineBtnEl.disabled = false;
+      mineBtnEl.textContent = '⛏️ Start Mining';
+      mineBtnEl.dataset.originalText = '⛏️ Start Mining';
       document.getElementById('mineCircleBtn').classList.remove('disabled');
-      document.getElementById('mineStatusLine').classList.remove('disabled');
-      document.getElementById('mineStatusText').textContent = 'MINING STANDBY • CLICK HERE TO START';
       document.getElementById('liveEarningValue').textContent = '0.000000';
       clearLocalCooldown(currentUsername);
     }
@@ -1178,13 +1160,12 @@ async function mine() {
   }
 }
 
-// Clicking the coin logo or the status line underneath it both start a
-// mining session, same as the big button — with a quick "buzz" shake on
-// the logo itself, plus a brief 0.5s water-ripple burst for feedback.
+// Clicking the coin logo always gives a quick "buzz" shake plus a brief
+// 0.5s water-ripple burst for feedback — whether the button is enabled or
+// currently disabled (mid mining-session). Only actually starts a mining
+// session if it's enabled.
 function triggerMine(source) {
   const mineBtn = document.getElementById('mineBtn');
-  if (mineBtn.disabled) return;
-
   const circle = document.getElementById('mineCircleBtn');
   const wrap = document.getElementById('mineCircleWrap');
 
@@ -1197,6 +1178,7 @@ function triggerMine(source) {
   wrap.classList.add('rippling');
   setTimeout(() => wrap.classList.remove('rippling'), 500);
 
+  if (mineBtn.disabled) return;
   mine();
 }
 
@@ -1214,17 +1196,11 @@ window.toggleCountryList = toggleCountryList;
 
 function startCooldown(remainingMs) {
   const btn = document.getElementById('mineBtn');
-  const timerEl = document.getElementById('timerDisplay');
   const circle = document.getElementById('mineCircleBtn');
-  const circleWrap = document.getElementById('mineCircleWrap');
-  const statusLine = document.getElementById('mineStatusLine');
-  const statusText = document.getElementById('mineStatusText');
   const liveVal = document.getElementById('liveEarningValue');
 
   btn.disabled = true;
   circle.classList.add('disabled');
-  statusLine.classList.add('disabled');
-  timerEl.classList.remove('hidden');
 
   clearInterval(countdownInterval);
   let remaining = remainingMs;
@@ -1233,18 +1209,18 @@ function startCooldown(remainingMs) {
     if (remaining <= 0) {
       clearInterval(countdownInterval);
       btn.disabled = false;
+      btn.textContent = '⛏️ Start Mining';
+      btn.dataset.originalText = '⛏️ Start Mining';
       circle.classList.remove('disabled');
-      statusLine.classList.remove('disabled');
-      timerEl.classList.add('hidden');
-      statusText.textContent = 'MINING STANDBY • CLICK HERE TO START';
       liveVal.textContent = '0.000000';
       return;
     }
     const h = Math.floor(remaining / 3600000);
     const m = Math.floor((remaining % 3600000) / 60000);
     const s = Math.floor((remaining % 60000) / 1000);
-    timerEl.textContent = `Next Session: ${h}h ${m}m ${s}s`;
-    statusText.textContent = `MINING ACTIVE • ${h}h ${m}m ${s}s left`;
+    const label = `Mining Active • ${h}h ${m}m ${s}s left`;
+    btn.textContent = label;
+    btn.dataset.originalText = label;
 
     // Purely visual: shows progress ticking up toward next session's
     // reward, second by second, so the mining feels alive.
