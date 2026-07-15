@@ -38,6 +38,28 @@
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     text-align: center;
   }
+
+  /* ===== Mobile / WebView: card fills the full screen like a native app ===== */
+  @media (max-width: 600px) {
+    body {
+      padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    .card {
+      min-height: 100vh;
+      max-width: 100%;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .menu-overlay { border-radius: 0; }
+    .side-menu { border-radius: 0; }
+  }
   .clock-warning {
     background: rgba(255,107,107,0.15);
     border: 1px solid #ff6b6b;
