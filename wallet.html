@@ -97,8 +97,9 @@
   .balance-group.hiding { opacity: 0; transform: translateX(-24px); }
   .balance-group.gone { display: none; }
 
-  .amount-wrap { position: relative; }
-  .amount-wrap input { padding-right: 60px; }
+  .amount-wrap, .addr-wrap { position: relative; margin-bottom: 12px; }
+  .amount-wrap input, .addr-wrap input { padding-right: 60px; margin-bottom: 0; }
+  .addr-wrap input { padding-right: 66px; }
   .max-btn, .paste-btn {
     position: absolute;
     right: 6px; top: 0; bottom: 0; margin: auto 0;
@@ -112,8 +113,6 @@
     cursor: pointer;
     line-height: 1;
   }
-  .addr-wrap { position: relative; }
-  .addr-wrap input { padding-right: 66px; }
 
   .addr-box {
     background: rgba(255,255,255,0.06);
